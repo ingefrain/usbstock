@@ -2,21 +2,79 @@
 
 namespace Tests\Integration;
 
+use App\Commerce\QuoteService;
+use App\Commerce\SupplierSync;
+use App\Models\CommercialSetting;
 use App\Models\OutboxMessage;
+use App\Models\ProductVariant;
 use App\Services\Outbox\OutboxDispatcher;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Concerns\InteractsWithBaseAdmin;
 use Tests\Support\TestDatabaseSafety;
 use Tests\TestCase;
 
 class MariaDbOutboxIntegrationTest extends TestCase
 {
+    use InteractsWithBaseAdmin;
+
+    public function test_commerce_sync_serializes_two_independent_workers(): void
+    {
+        config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb')]);
+        $sync = app(SupplierSync::class);
+        $first = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,100,Prueba aislada,10.00", 'fixture.csv', null);
+        $second = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,200,Prueba aislada,20.00", 'fixture.csv', null);
+        $gate = tempnam(sys_get_temp_dir(), 'commerce-gate-');
+        unlink($gate);
+        $workers = collect([$first, $second])->map(fn ($run) => new Process([PHP_BINARY, base_path('tests/Support/mariadb_outbox_worker.php'), (string) $run->id, $gate, 'commerce'], base_path(), ['APP_ENV' => 'testing', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:']));
+        foreach ($workers as $worker) {
+            $worker->start();
+        } touch($gate);
+        foreach ($workers as $worker) {
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+        }
+        unlink($gate);
+        $this->assertSame(['applied', 'conflict'], $workers->map(fn ($w) => $w->getOutput())->sort()->values()->all());
+        $this->assertDatabaseCount('products', 1);
+        $this->assertDatabaseCount('product_variants', 1);
+        $this->assertSame(1, (int) DB::table('commerce_locks')->value('catalog_revision'));
+        Storage::disk('local')->delete([$first->path, $second->path]);
+    }
+
+    public function test_commerce_json_totals_pdf_versions_and_foreign_keys_on_mariadb(): void
+    {
+        Storage::fake('local');
+        $admin = $this->adminUser();
+        $sync = app(SupplierSync::class);
+        $sync->apply($sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,100,Descripción de prueba,10.00", 'fixture.csv', $admin->id), $admin->id);
+        CommercialSetting::create(['id' => 1, 'data' => ['issuer_name' => 'Emisor ficticio', 'issuer_contact' => 'prueba@example.test']]);
+        $variant = ProductVariant::sole();
+        $service = app(QuoteService::class);
+        $quote = $service->save(['revision' => 1, 'customer_name' => 'Prueba', 'customer_email' => 'prueba@example.test', 'seller' => 'Vendedor ficticio', 'terms' => 'Condiciones ficticias', 'validity_days' => 30, 'tax_basis_points' => 1600, 'shipping' => '50.00', 'items' => [['variant_id' => $variant->id, 'quantity' => 50, 'unit_price' => '20.00', 'printing_price' => '2.00', 'discount' => '100.00']]], $admin->id);
+        $key = (string) Str::uuid();
+        $version = $service->issue($quote, 1, $key, $admin->id);
+        $this->assertSame(122600, $version->fresh()->snapshot['totals']['total']);
+        $this->assertSame($version->id, $service->issue($quote, 1, $key, $admin->id)->id);
+        $this->assertSame(1, $quote->versions()->count());
+        $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($version->path));
+        try {
+            $variant->delete();
+            $this->fail('Debe conservarse la referencia');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+    }
+
     private const CONNECTION = 'outbox_mariadb_test';
+
+    private static bool $schemaCreated = false;
 
     protected function setUp(): void
     {
@@ -52,7 +110,28 @@ class MariaDbOutboxIntegrationTest extends TestCase
             'database.default' => self::CONNECTION,
         ]);
         app('db')->purge(self::CONNECTION);
-        Artisan::call('migrate:fresh', ['--database' => self::CONNECTION, '--force' => true]);
+        if (! self::$schemaCreated) {
+            Artisan::call('migrate:fresh', ['--database' => self::CONNECTION, '--force' => true]);
+            self::$schemaCreated = true;
+        } else {
+            // Keep the validated schema, clear only the guarded disposable database.
+            // DELETE avoids repeating dozens of DDL operations on an external disk.
+            $this->assertSame('usbstock_test', DB::scalar('SELECT DATABASE()'));
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            try {
+                DB::transaction(function (): void {
+                    foreach (DB::getSchemaBuilder()->getTableListing(null, false) as $table) {
+                        if ($table !== 'migrations') {
+                            DB::table($table)->delete();
+                        }
+                    }
+                    DB::table('commerce_locks')->insert(['id' => 1]);
+                });
+            } finally {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
+            $this->assertSame(23, DB::table('migrations')->count());
+        }
     }
 
     public function test_mariadb_uses_persistent_atomic_state_to_prevent_repeated_delivery(): void

@@ -1,7 +1,10 @@
 <?php
 
+use App\Commerce\SupplierSync;
+use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Contracts\Console\Kernel;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\TestDatabaseSafety;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -39,4 +42,17 @@ while (! is_file($gate)) {
     usleep(10000);
 }
 
-echo app(OutboxProcessor::class)->process($messageId) ? 'claimed' : 'skipped';
+if (($argv[3] ?? '') === 'commerce') {
+    config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb')]);
+    try {
+        app(SupplierSync::class)->apply(SupplierSyncRun::findOrFail($messageId), null);
+        echo 'applied';
+    } catch (HttpException $exception) {
+        if ($exception->getStatusCode() !== 409) {
+            throw $exception;
+        }
+        echo 'conflict';
+    }
+} else {
+    echo app(OutboxProcessor::class)->process($messageId) ? 'claimed' : 'skipped';
+}
