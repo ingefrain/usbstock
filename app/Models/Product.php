@@ -67,4 +67,9 @@ class Product extends Model
     {
         return $this->is_published && $this->provider_active && (! $this->category || $this->category->is_published);
     }
+
+    public function scopeCatalogVisible($query)
+    {
+        return $query->published()->whereHas('variants', fn ($q) => $q->where('provider_active', true)->where('is_enabled', true));
+    }
 }

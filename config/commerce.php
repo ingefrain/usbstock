@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'catalog_block_size' => 24,
     'notify_email' => env('COMMERCE_NOTIFY_EMAIL'),
     'telegram_enabled' => (bool) env('SUPPLIER_TELEGRAM_ENABLED', false),
     'environment_label' => env('SUPPLIER_ENVIRONMENT_LABEL', env('APP_ENV', 'local')),

@@ -42,9 +42,9 @@ try {
         echo $buffer;
     });
     $xml = filesize($report) > 0 ? simplexml_load_file($report) : false;
-    if ($exitCode === 0 && ($xml === false || (int) $xml->testsuite['tests'] !== 7
+    if ($exitCode === 0 && ($xml === false || (int) $xml->testsuite['tests'] !== 8
         || (int) $xml->testsuite['skipped'] !== 0 || (int) $xml->testsuite['assertions'] === 0)) {
-        fwrite(STDERR, "MariaDB tests did not produce a complete seven-test report.\n");
+        fwrite(STDERR, "MariaDB tests did not produce a complete eight-test report.\n");
         $exitCode = 1;
     }
 } finally {

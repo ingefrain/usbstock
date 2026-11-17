@@ -505,6 +505,26 @@
     gap:18px
 }
 
+.shop [hidden] { display:none!important }
+.catalog-results { min-width:0 }
+.catalog-continuation { text-align:center; padding:32px 0; min-height:145px }
+.catalog-continuation p { min-height:25px; font-size:14px; color:#555 }
+.catalog-footer-link { display:inline-block; font-size:12px; margin-bottom:12px; text-decoration:underline!important }
+.category-links { display:flex; flex-direction:column; gap:12px; margin-top:24px; font-size:13px }
+.category-links h2 { font-size:16px; margin-bottom:0 }
+.product-card { display:flex; flex-direction:column; border-radius:12px }
+.product-copy { display:flex; flex-direction:column; flex:1; min-width:0 }
+.product-copy h3 { overflow-wrap:anywhere }
+.product-card .card-bottom { margin-top:auto; align-items:start; flex-direction:column; gap:12px; font-size:12px; line-height:1.5 }
+.product-card .card-bottom>a { display:flex; gap:16px; width:auto; height:auto; min-height:44px; border-radius:6px; font-size:12px; font-weight:700; padding:10px 13px; background:#f4f4f4; color:#222 }
+.availability.is-available { color:#276239 }
+.availability.is-available::before { content:'●'; font-size:8px; margin-right:6px }
+.product-picture { flex:none; overflow:hidden }
+.product-picture img { position:absolute; inset:0 }
+.product-picture .placeholder { min-height:0 }
+.product-picture .placeholder small { padding:0 8px; text-align:center }
+.catalog-grid[aria-busy=true] { opacity:.72 }
+
 .catalog-grid h3 {
     font-size:19px
 }

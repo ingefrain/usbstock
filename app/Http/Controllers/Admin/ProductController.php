@@ -17,10 +17,11 @@ final class ProductController
     public function index(Request $request)
     {
         CommerceAccess::authorize('products.view');
-        $filters = $request->validate(['q' => 'nullable|string|max:120', 'status' => 'nullable|in:published,draft']);
-        $products = Product::with('category')->withCount('variants')
-            ->when($filters['q'] ?? null, fn ($q, $text) => $q->where(fn ($s) => $s->where('external_key', 'like', '%'.$text.'%')->orWhere('supplier_description', 'like', '%'.$text.'%')->orWhere('custom_name', 'like', '%'.$text.'%')))
+        $filters = $request->validate(['q' => 'nullable|string|max:120', 'status' => 'nullable|in:published,draft', 'photo' => 'nullable|in:missing,present']);
+        $products = Product::with('category')->withCount('variants')->withExists('image')
+            ->when($filters['q'] ?? null, fn ($q, $text) => $q->where(fn ($s) => $s->where('external_key', 'like', '%'.$text.'%')->orWhere('supplier_description', 'like', '%'.$text.'%')->orWhere('custom_name', 'like', '%'.$text.'%')->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', '%'.$text.'%'))))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('is_published', $status === 'published'))
+            ->when($filters['photo'] ?? null, fn ($q, $photo) => $photo === 'missing' ? $q->whereDoesntHave('image') : $q->whereHas('image'))
             ->orderBy('external_key')->paginate(24)->withQueryString();
 
         return view('admin.commerce.products', compact('products', 'filters'));
@@ -47,6 +48,7 @@ final class ProductController
             'variants.*.color_name' => 'nullable|string|max:80', 'variants.*.is_enabled' => 'required|boolean',
         ]);
         DB::transaction(function () use ($data, $request, $product, $documents, $audit): void {
+            DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
             $product = Product::lockForUpdate()->findOrFail($product->id);
             $product->fill(collect($data)->except(['image', 'remove_image', 'variants'])->all())->save();
             $actor = app(ImpersonationManager::class)->actor() ?? $request->user();
@@ -60,6 +62,7 @@ final class ProductController
                 $product->variants()->whereKey($variant['id'])->update(['color_name' => $variant['color_name'] ?? null, 'is_enabled' => (bool) $variant['is_enabled']]);
             }
             $audit->record('product.updated', 'product', $product->uuid, after: ['fields' => array_keys($data), 'published' => $product->is_published]);
+            DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
         });
 
         return back()->with('notify', ['type' => 'success', 'message' => 'Producto actualizado.']);
@@ -79,7 +82,9 @@ final class ProductController
         $category ??= new ProductCategory;
         $data = $request->validate(['name' => 'required|string|max:120', 'slug' => ['required', 'alpha_dash:ascii', 'max:140', Rule::unique('product_categories')->ignore($category->id)], 'description' => 'nullable|string|max:2000', 'is_published' => 'required|boolean']);
         DB::transaction(function () use ($category, $data, $audit): void {
+            DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
             $category->fill($data)->save();
+            DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
             $audit->record('product_category.saved', 'product_category', $category->id, after: ['published' => $category->is_published]);
         });
 

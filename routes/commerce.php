@@ -12,8 +12,11 @@ use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('catalogo', [StorefrontController::class, 'catalog'])->name('shop.catalog');
+Route::get('catalogo/bloques', [StorefrontController::class, 'catalogBlock'])->middleware('throttle:120,1,public-catalog')->name('shop.catalog.block');
+Route::get('catalogo/categoria/{category}', [StorefrontController::class, 'catalog'])->name('shop.category');
 Route::get('producto/{slug}', [StorefrontController::class, 'product'])->name('shop.product');
 Route::get('producto/{slug}/imagen', [StorefrontController::class, 'image'])->name('shop.image');
+Route::get('producto/{slug}/miniatura', [StorefrontController::class, 'thumbnail'])->middleware('throttle:240,1,catalog-image')->name('shop.thumbnail');
 Route::get('contacto', [StorefrontController::class, 'info'])->name('shop.info');
 Route::get('sitemap.xml', [StorefrontController::class, 'sitemap'])->name('shop.sitemap');
 Route::get('solicitar-cotizacion', [PublicQuoteRequestController::class, 'index'])->name('shop.request');

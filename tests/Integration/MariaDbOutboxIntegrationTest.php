@@ -2,6 +2,7 @@
 
 namespace Tests\Integration;
 
+use App\Commerce\PublicCatalog;
 use App\Commerce\QuoteService;
 use App\Commerce\SupplierSync;
 use App\Models\CommercialSetting;
@@ -11,19 +12,78 @@ use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxDispatcher;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Database\QueryException;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Concerns\InteractsWithBaseAdmin;
+use Tests\Support\CatalogDataset;
 use Tests\Support\TestDatabaseSafety;
 use Tests\TestCase;
 
 class MariaDbOutboxIntegrationTest extends TestCase
 {
     use InteractsWithBaseAdmin;
+
+    public function test_public_catalog_performance_and_cursor_continuity_on_large_isolated_datasets(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        $report = [];
+        foreach ([100, 1000, 5000] as $size) {
+            DB::table('product_variants')->delete();
+            DB::table('products')->delete();
+            DB::table('product_categories')->delete();
+            DB::transaction(fn () => CatalogDataset::create($size));
+            $times = [];
+            $sqlTimes = [];
+            $sqlCounts = [];
+            $sizes = [];
+            $seen = [];
+            $requests = 0;
+            $url = '/catalogo/bloques';
+            $memory = memory_get_usage(true);
+            do {
+                DB::flushQueryLog();
+                DB::enableQueryLog();
+                $start = hrtime(true);
+                $response = $this->getJson($url)->assertOk();
+                $times[] = (hrtime(true) - $start) / 1e6;
+                $queries = DB::getQueryLog();
+                DB::disableQueryLog();
+                $sqlTimes[] = array_sum(array_column($queries, 'time'));
+                $sqlCounts[] = count($queries);
+                $sizes[] = strlen($response->getContent());
+                preg_match_all('/data-product-id="([^"]+)"/', $response->json('html'), $matches);
+                $seen = array_merge($seen, $matches[1]);
+                $next = $response->json('next');
+                $url = $next ? '/catalogo/bloques?'.parse_url($next, PHP_URL_QUERY) : null;
+                $requests++;
+                $this->assertLessThanOrEqual((int) ceil($size / 24), $requests);
+            } while ($url);
+            $this->assertCount($size, $seen);
+            $this->assertCount($size, array_unique($seen));
+            $this->assertLessThanOrEqual(4, max($sqlCounts));
+            $this->assertLessThan(65000, max($sizes));
+            $filterStart = hrtime(true);
+            $filtered = $this->getJson('/catalogo/bloques?capacity=16&available=1&q=TEST')->assertOk();
+            $filterMs = (hrtime(true) - $filterStart) / 1e6;
+            $this->assertSame(24, $filtered->json('count'));
+            sort($times);
+            $report[] = ['products' => $size, 'variants' => $size * 4, 'requests_full_walk' => $requests,
+                'query_count_max' => max($sqlCounts), 'query_ms_max' => round(max($sqlTimes), 2),
+                'http_ms_p50' => round($times[(int) ceil(count($times) * .5) - 1], 2), 'http_ms_p95' => round($times[(int) ceil(count($times) * .95) - 1], 2), 'http_ms_max' => round(max($times), 2),
+                'response_bytes_max' => max($sizes), 'filtered_block_ms' => round($filterMs, 2),
+                'memory_growth_mib' => round((memory_get_usage(true) - $memory) / 1048576, 2), 'process_peak_mib' => round(memory_get_peak_usage(true) / 1048576, 2)];
+        }
+        $query = app(PublicCatalog::class)->query(['available' => 1, 'capacity' => 16])->orderByDesc('products.id')->limit(25);
+        $plan = DB::select('EXPLAIN '.$query->toSql(), $query->getBindings());
+        File::ensureDirectoryExists(storage_path('app/private/qa/catalog'));
+        file_put_contents(storage_path('app/private/qa/catalog/performance.json'), json_encode(['database' => 'usbstock_test', 'scenarios' => $report, 'explain' => $plan], JSON_PRETTY_PRINT));
+    }
 
     public function test_daily_supplier_pipeline_is_unique_across_independent_workers(): void
     {
@@ -158,7 +218,7 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-            $this->assertSame(24, DB::table('migrations')->count());
+            $this->assertSame(25, DB::table('migrations')->count());
         }
     }
 
