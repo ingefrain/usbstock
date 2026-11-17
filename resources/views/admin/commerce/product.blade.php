@@ -1,0 +1,20 @@
+@extends('layouts.admin')
+@section('title', $product->external_key)
+@section('content')
+<div class="admin-form-surface admin-form-surface-wide">
+<p><a href="{{ route('admin.products.index') }}">← Productos</a></p>
+<section class="panel"><h2>Descripción del proveedor</h2><p style="white-space:pre-wrap">{{ $product->supplier_description }}</p><p class="muted">Última sincronización: {{ $product->synced_at?->format('d/m/Y H:i') ?? '—' }}. Este texto se conserva tal como llega del proveedor.</p></section>
+@php($manage = \App\Commerce\CommerceAccess::allows(auth()->user(), 'products.manage'))
+<form method="POST" enctype="multipart/form-data" action="{{ route('admin.products.update', $product) }}">@csrf @method('PUT')
+<fieldset class="panel" @disabled(!$manage)><legend>Presentación comercial</legend><div class="field-grid">
+<div class="field"><label for="custom_name">Nombre personalizado (opcional)</label><input id="custom_name" name="custom_name" value="{{ old('custom_name', $product->custom_name) }}" maxlength="180"><x-admin.field-error name="custom_name" /></div>
+<div class="field"><label for="category">Categoría</label><select id="category" name="product_category_id"><option value="">Sin categoría</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected(old('product_category_id', $product->product_category_id) == $category->id)>{{ $category->name }}{{ !$category->is_published ? ' (no publicada)' : '' }}</option>@endforeach</select></div>
+<div class="field"><label for="capacity">Capacidad USB (GB, opcional)</label><input id="capacity" type="number" min="1" max="100000" name="capacity_gb" value="{{ old('capacity_gb', $product->capacity_gb) }}"><p class="field-hint">Captura solo la capacidad confirmada para este modelo.</p></div>
+<div class="field"><label for="published">Publicación</label><select id="published" name="is_published"><option value="0" @selected(!old('is_published', $product->is_published))>Sin publicar</option><option value="1" @selected(old('is_published', $product->is_published))>Publicado</option></select></div></div>
+<div class="field"><label for="description">Descripción personalizada (opcional)</label><textarea id="description" name="custom_description" rows="5" maxlength="4000">{{ old('custom_description', $product->custom_description) }}</textarea><p class="field-hint">Déjala vacía para usar la del proveedor. Las sincronizaciones conservan tu personalización.</p><x-admin.field-error name="custom_description" /></div>
+<div class="field"><x-admin.dropzone name="image" label="Imagen principal" accept="image/jpeg,image/png,image/webp" :mime-types="['image/jpeg','image/png','image/webp']" :max-size-kb="5120" />
+@if($product->image)<p>Imagen registrada. <label><input type="checkbox" name="remove_image" value="1"> Retirar imagen</label></p>@endif</div>
+<h2>Variantes</h2><div class="table-wrap"><table><thead><tr><th>SKU</th><th>Color comercial</th><th>Existencias</th><th>Costo proveedor, sin IVA</th><th>Disponible</th></tr></thead><tbody>
+@foreach($product->variants as $variant)<tr><td>{{ $variant->sku }}<input type="hidden" name="variants[{{ $loop->index }}][id]" value="{{ $variant->id }}"></td><td><input aria-label="Color de {{ $variant->sku }}" name="variants[{{ $loop->index }}][color_name]" value="{{ old('variants.'.$loop->index.'.color_name', $variant->color_name) }}" placeholder="{{ $variant->color_code }}" maxlength="80"></td><td>{{ $variant->stock }}</td><td>{{ \App\Commerce\Money::format($variant->supplier_price_minor) }}</td><td><select aria-label="Disponibilidad de {{ $variant->sku }}" name="variants[{{ $loop->index }}][is_enabled]"><option value="1" @selected($variant->is_enabled)>Habilitada</option><option value="0" @selected(!$variant->is_enabled)>Oculta</option></select>@if(!$variant->provider_active)<small>Ausente del proveedor</small>@endif</td></tr>@endforeach
+</tbody></table></div><div class="form-actions">@if($manage)<button class="button button-primary">Guardar personalizaciones</button>@endif</div></fieldset></form></div>
+@endsection

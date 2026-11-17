@@ -29,7 +29,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertOk()
             ->assertSee('Restablecer contraseña')
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-        $this->get('/')->assertRedirect(route('admin.login'));
+        $this->get('/')->assertOk()->assertSee('USB Stock');
     }
 
     public function test_password_reset_form_is_not_cached_or_indexed(): void

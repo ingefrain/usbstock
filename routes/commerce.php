@@ -1,0 +1,47 @@
+<?php
+
+use App\Http\Controllers\Admin\CommercialConfigController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\QuoteController;
+use App\Http\Controllers\Admin\QuoteRequestController;
+use App\Http\Controllers\Admin\SupplierSyncController;
+use App\Http\Controllers\PublicQuoteRequestController;
+use App\Http\Controllers\StorefrontController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('catalogo', [StorefrontController::class, 'catalog'])->name('shop.catalog');
+Route::get('producto/{slug}', [StorefrontController::class, 'product'])->name('shop.product');
+Route::get('producto/{slug}/imagen', [StorefrontController::class, 'image'])->name('shop.image');
+Route::get('contacto', [StorefrontController::class, 'info'])->name('shop.info');
+Route::get('sitemap.xml', [StorefrontController::class, 'sitemap'])->name('shop.sitemap');
+Route::get('solicitar-cotizacion', [PublicQuoteRequestController::class, 'index'])->name('shop.request');
+Route::post('seleccion', [PublicQuoteRequestController::class, 'add'])->middleware('throttle:60,1,commerce-cart')->name('shop.cart.add');
+Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remove'])->name('shop.cart.remove');
+Route::post('solicitar-cotizacion', [PublicQuoteRequestController::class, 'submit'])->middleware('throttle:5,10,commerce-request')->name('shop.request.submit');
+
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'account.active', 'session.current'])->group(function (): void {
+    Route::get('quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
+    Route::post('quote-requests/{request}/convert', [QuoteRequestController::class, 'convert'])->name('quote-requests.convert');
+    Route::post('quote-requests/{request}/status', [QuoteRequestController::class, 'status'])->name('quote-requests.status');
+    Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+    Route::get('quotes/create', [QuoteController::class, 'create'])->name('quotes.create');
+    Route::post('quotes', [QuoteController::class, 'store'])->name('quotes.store');
+    Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
+    Route::put('quotes/{quote}', [QuoteController::class, 'update'])->name('quotes.update');
+    Route::post('quotes/{quote}/issue', [QuoteController::class, 'issue'])->name('quotes.issue');
+    Route::post('quotes/{quote}/revise', [QuoteController::class, 'revise'])->name('quotes.revise');
+    Route::get('quotes/{quote}/pdf/{version}', [QuoteController::class, 'download'])->name('quotes.download');
+    Route::get('commercial-settings', [CommercialConfigController::class, 'settings'])->name('commerce.settings');
+    Route::put('commercial-settings', [CommercialConfigController::class, 'saveSettings'])->name('commerce.settings.save');
+    Route::get('clients', [CommercialConfigController::class, 'clients'])->name('clients.index');
+    Route::post('clients/{client?}', [CommercialConfigController::class, 'saveClient'])->name('clients.save');
+    Route::get('products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('products/{product}', [ProductController::class, 'edit'])->name('products.edit');
+    Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::get('product-categories', [ProductController::class, 'categories'])->name('product-categories.index');
+    Route::post('product-categories/{category?}', [ProductController::class, 'saveCategory'])->name('product-categories.save');
+    Route::get('supplier-sync', [SupplierSyncController::class, 'index'])->name('supplier-sync.index');
+    Route::post('supplier-sync', [SupplierSyncController::class, 'store'])->name('supplier-sync.store');
+    Route::get('supplier-sync/{run}', [SupplierSyncController::class, 'show'])->name('supplier-sync.show');
+    Route::post('supplier-sync/{run}/apply', [SupplierSyncController::class, 'apply'])->name('supplier-sync.apply');
+});

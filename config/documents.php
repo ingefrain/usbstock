@@ -23,6 +23,7 @@ return [
         'htaccess', 'htpasswd', 'env', 'ini', 'dll', 'so', 'dylib',
     ],
     'category_rules' => [
+        'product.image' => ['max_size_kb' => 5120, 'allowed_mime_types' => ['image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/webp' => ['webp']]],
         'catalog_item.image' => [
             'max_size_kb' => 5120,
             'allowed_mime_types' => [
@@ -57,6 +58,7 @@ return [
         ],
     ],
     'category_labels' => [
+        'product.image' => 'Imagen de producto comercial',
         'catalog_item.image' => 'Imagen de elemento de catálogo',
         'user.avatar' => 'Foto de perfil',
         'branding.logo' => 'Logotipo del sistema',
@@ -64,6 +66,7 @@ return [
     ],
     'image_max_input_pixels' => (int) env('DOCUMENTS_IMAGE_MAX_INPUT_PIXELS', 16000000),
     'image_processing' => [
+        'product.image' => ['enabled' => true, 'format' => 'webp', 'quality' => 85, 'max_width' => 1600, 'max_height' => 1600, 'on_unsupported' => 'error'],
         'catalog_item.image' => [
             'enabled' => true,
             'format' => 'webp',

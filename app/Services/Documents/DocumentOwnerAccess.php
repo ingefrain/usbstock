@@ -2,12 +2,14 @@
 
 namespace App\Services\Documents;
 
+use App\Commerce\CommerceAccess;
 use App\Models\ApplicationBranding;
 use App\Models\Catalog;
 use App\Models\CatalogItem;
 use App\Models\Document;
 use App\Models\Location;
 use App\Models\Organization;
+use App\Models\Product;
 use App\Models\User;
 use App\Policies\CatalogPolicy;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +25,9 @@ class DocumentOwnerAccess
     public function allows(User $actor, Document $document): bool
     {
         $owner = $document->documentable;
+        if ($owner instanceof Product) {
+            return CommerceAccess::allows($actor, 'products.view');
+        }
         if (! $owner instanceof Model) {
             return false;
         }
@@ -58,6 +63,9 @@ class DocumentOwnerAccess
             if ($actor->can('locations.view')) {
                 $builder->orWhere('documentable_type', (new Location)->getMorphClass());
             }
+            if (CommerceAccess::allows($actor, 'products.view')) {
+                $builder->orWhere('documentable_type', (new Product)->getMorphClass());
+            }
             if (CatalogPolicy::permits($actor, 'catalogs.view')) {
                 $showOrganizations = CatalogPolicy::permits($actor, 'organizations.view');
                 $builder->orWhereHasMorph('documentable', Catalog::class, function (Builder $catalog) use ($showOrganizations): void {
@@ -76,6 +84,9 @@ class DocumentOwnerAccess
     public function canManage(User $actor, Document $document): bool
     {
         $owner = $document->documentable;
+        if ($owner instanceof Product) {
+            return $document->category !== Product::IMAGE_CATEGORY && CommerceAccess::allows($actor, 'products.view') && CommerceAccess::allows($actor, 'products.manage');
+        }
         if ($owner instanceof Catalog || $owner instanceof CatalogItem) {
             return $document->category !== CatalogItem::IMAGE_CATEGORY && Gate::forUser($actor)->allows('update', $owner);
         }

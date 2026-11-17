@@ -1,0 +1,6 @@
+<section class="panel" data-quote-line><div class="field-grid">
+<div class="field"><label for="variant_{{ $index }}">Modelo y variante</label><select id="variant_{{ $index }}" name="items[{{ $index }}][variant_id]" required><option value="">Selecciona una variante</option>@foreach($variants as $variant)<option value="{{ $variant->id }}" @selected(($line['variant_id'] ?? '') == $variant->id)>{{ $variant->sku }} · {{ $variant->product->name }} · {{ $variant->color }} · {{ $variant->stock }} disponibles</option>@endforeach</select></div>
+@foreach(['quantity'=>'Cantidad','unit_price'=>'Venta unitaria MXN','printing_price'=>'Impresión unitaria MXN','discount'=>'Descuento de la partida MXN','printing'=>'Detalle de impresión'] as $field=>$label)
+<div class="field"><label for="line_{{ $index }}_{{ $field }}">{{ $label }}</label><input id="line_{{ $index }}_{{ $field }}" name="items[{{ $index }}][{{ $field }}]" value="{{ $line[$field] ?? '' }}" type="{{ $field === 'quantity' ? 'number' : 'text' }}" @if($field === 'quantity') min="1" max="1000000" @endif @required($field !== 'printing') maxlength="{{ $field === 'printing' ? 500 : 15 }}"></div>
+@endforeach
+</div><button class="button button-secondary" type="button" data-remove-quote-line>Quitar partida</button></section>

@@ -26,10 +26,11 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SystemAuditController;
 use App\Http\Controllers\Admin\SystemStatusController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\StorefrontController;
 use App\Http\Middleware\EnsureComponentCatalogEnabled;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('admin.login'));
+Route::get('/', [StorefrontController::class, 'home'])->name('shop.home');
 Route::get('/branding/logo', [BrandingController::class, 'logo'])->name('branding.logo');
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
@@ -154,3 +155,5 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::patch('/locations/{location}/status', [LocationController::class, 'toggleStatus'])->middleware('can:locations.disable')->name('locations.status');
     });
 });
+
+require __DIR__.'/commerce.php';

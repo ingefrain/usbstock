@@ -9,6 +9,7 @@
     @php($branding = \App\Models\ApplicationBranding::current())
     <title>@yield('title', 'Resumen') · {{ $branding->displayName() }}</title>
     <link rel="stylesheet" href="{{ asset('assets/base-admin/admin.css') }}?v={{ filemtime(public_path('assets/base-admin/admin.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/commerce-admin.css') }}?v={{ filemtime(public_path('assets/commerce-admin.css')) }}">
 </head>
 <body class="admin-body">
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
@@ -20,10 +21,15 @@
         <button class="drawer-scrim" type="button" data-drawer-close aria-label="Cerrar menú" tabindex="-1"></button>
         <aside class="sidebar" id="admin-sidebar" aria-label="Navegación administrativa">
             <a class="brand" href="{{ $navigationCan('dashboard.view') ? route('admin.dashboard') : ($navigationCan('users.view') ? route('admin.settings.index') : route('admin.profile.edit')) }}">
-                @if($branding->logo)<img class="brand-logo" src="{{ route('branding.logo') }}?v={{ substr($branding->logo->checksum, 0, 16) }}" alt="">@else<span class="brand-mark" aria-hidden="true">PB</span>@endif
+                @if($branding->logo)<img class="brand-logo" src="{{ route('branding.logo') }}?v={{ substr($branding->logo->checksum, 0, 16) }}" alt="">@else<img class="brand-logo" src="{{ asset('brand/logo.webp') }}" alt="">@endif
                 <span><strong>{{ $branding->displayName() }}</strong><small>Administración</small></span>
             </a>
             <nav class="side-navigation" aria-label="Principal">
+                <a class="side-link" href="{{ route('shop.home') }}">Ver sitio público ↗</a>
+                @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<a class="side-link" href="{{ route('admin.quote-requests.index') }}">Solicitudes públicas</a>@endif
+                @foreach(['products.view' => ['admin.products.index', 'Productos'], 'supplier_sync.view' => ['admin.supplier-sync.index', 'Sincronizaciones'], 'quotes.view' => ['admin.quotes.index', 'Cotizaciones'], 'clients.manage' => ['admin.clients.index', 'Clientes'], 'commerce.configure' => ['admin.commerce.settings', 'Configuración comercial']] as $permission => [$commerceRoute, $commerceLabel])
+                    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), $permission))<a class="side-link {{ request()->routeIs(str_replace('.index', '.*', $commerceRoute)) ? 'is-active' : '' }}" href="{{ route($commerceRoute) }}">{{ $commerceLabel }}</a>@endif
+                @endforeach
                 @if($navigationCan('dashboard.view'))
                     <a class="side-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}" @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif>Resumen</a>
                 @endif
@@ -97,5 +103,6 @@
     <script src="{{ asset('assets/base-admin/admin.js') }}?v={{ filemtime(public_path('assets/base-admin/admin.js')) }}" defer></script>
     <script src="{{ asset('assets/base-admin/markdown-editor.js') }}?v={{ filemtime(public_path('assets/base-admin/markdown-editor.js')) }}" defer></script>
     @stack('admin-scripts')
+    @vite('resources/js/app.js')
 </body>
 </html>

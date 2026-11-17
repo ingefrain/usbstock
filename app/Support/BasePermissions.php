@@ -2,10 +2,13 @@
 
 namespace App\Support;
 
+use App\Commerce\CommercePermissions;
+
 class BasePermissions
 {
     /** @var array<string, string> */
     public const DEFINITIONS = [
+        ...CommercePermissions::DEFINITIONS,
         'dashboard.view' => 'Ver el resumen administrativo',
         'reports.view' => 'Consultar reportes administrativos',
         'reports.export' => 'Exportar reportes administrativos',
