@@ -33,10 +33,14 @@ class TestDatabaseSafetyTest extends TestCase
         ];
 
         foreach ([
+            ['database' => 'usbstock_dev'],
+            ['database' => 'proyectobase_test', 'username' => 'proyectobase_test_runner'],
+            ['database' => 'another_test', 'username' => 'another_test_runner'],
             ['database' => 'proyectobase_dev'],
             ['database' => 'clap_dev'],
             ['database' => 'acerca_prod'],
             ['host' => 'db.example.com'],
+            ['host' => 'localhost'],
             ['port' => '3306'],
             ['username' => 'root'],
             ['url' => 'mysql://localhost/proyectobase_test'],
@@ -46,12 +50,34 @@ class TestDatabaseSafetyTest extends TestCase
             ['prefix' => 'production_'],
         ] as $override) {
             try {
-                TestDatabaseSafety::assertConnection(array_replace($safe, $override), '1', ['usbstock_test']);
+                TestDatabaseSafety::assertConnection(array_replace($safe, $override), '1');
                 $this->fail('Unsafe test database configuration was accepted.');
             } catch (RuntimeException) {
                 $this->assertTrue(true);
             }
         }
+    }
+
+    public function test_file_sqlite_and_every_existing_non_test_schema_are_rejected(): void
+    {
+        $databases = ['clap_dev', 'concretoymas', 'cotizadoracerca_dev', 'cpq', 'efra',
+            'grupotalento', 'information_schema', 'mysql', 'performance_schema',
+            'proyectobase_dev', 'proyectobase_test', 'publimarca', 'publimarca_dev',
+            'sys', 'usbpromocional', 'usbstock2', 'usbstock_dev', 'usbstock_old'];
+        foreach ($databases as $database) {
+            try {
+                TestDatabaseSafety::assertConnection([
+                    'driver' => 'mysql', 'host' => '127.0.0.1', 'port' => '3307',
+                    'database' => $database, 'username' => $database.'_runner',
+                ], '1');
+                $this->fail('Existing schema was accepted: '.$database);
+            } catch (RuntimeException) {
+                $this->assertTrue(true);
+            }
+        }
+
+        $this->expectException(RuntimeException::class);
+        TestDatabaseSafety::assertConnection(['driver' => 'sqlite', 'database' => 'database/database.sqlite']);
     }
 
     public function test_mariadb_requires_opt_in_test_suffix_and_database_distinct_from_application_database(): void
