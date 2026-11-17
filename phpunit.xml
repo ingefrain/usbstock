@@ -34,6 +34,15 @@
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SUPPLIER_FTP_ENABLED" value="false" force="true"/>
         <env name="SUPPLIER_SYNC_ENABLED" value="false" force="true"/>
+        <env name="SUPPLIER_SYNC_AUTO_APPLY" value="false" force="true"/>
+        <env name="SUPPLIER_FTP_HOST" value="supplier.example.test" force="true"/>
+        <env name="SUPPLIER_FTP_USER" value="synthetic-reader" force="true"/>
+        <env name="SUPPLIER_FTP_PASSWORD" value="synthetic-secret" force="true"/>
+        <env name="SUPPLIER_FTP_PROTOCOL" value="ftps-explicit" force="true"/>
+        <env name="SUPPLIER_FTP_PORT" value="21" force="true"/>
+        <env name="SUPPLIER_FTP_PATH" value="/FTP/Existencias-ftp-precio.csv" force="true"/>
+        <env name="SUPPLIER_TRIAL_DATABASE" value="usbstock_dev" force="true"/>
+        <env name="SUPPLIER_TRIAL_ALLOW_PLAINTEXT" value="false" force="true"/>
         <env name="SUPPLIER_TELEGRAM_ENABLED" value="false" force="true"/>
         <env name="TELEGRAM_ENABLED" value="false" force="true"/>
         <env name="COMMERCE_NOTIFY_EMAIL" value="" force="true"/>

@@ -5,7 +5,11 @@ require dirname(__DIR__).'/vendor/autoload.php';
 // Laravel reads $_SERVER before getenv(); PHPUnit's force flag only updates
 // getenv()/$_ENV. Mirror the forced values so inherited shell variables cannot win.
 foreach (['APP_ENV', 'DB_CONNECTION', 'DB_DATABASE', 'DB_URL', 'CACHE_STORE',
-    'MAIL_MAILER', 'QUEUE_CONNECTION', 'SESSION_DRIVER', 'APP_URL'] as $name) {
+    'MAIL_MAILER', 'QUEUE_CONNECTION', 'SESSION_DRIVER', 'APP_URL',
+    'SUPPLIER_FTP_ENABLED', 'SUPPLIER_SYNC_ENABLED', 'SUPPLIER_SYNC_AUTO_APPLY',
+    'SUPPLIER_FTP_HOST', 'SUPPLIER_FTP_USER', 'SUPPLIER_FTP_PASSWORD', 'SUPPLIER_FTP_PROTOCOL',
+    'SUPPLIER_FTP_PORT', 'SUPPLIER_FTP_PATH', 'SUPPLIER_TRIAL_DATABASE', 'SUPPLIER_TRIAL_ALLOW_PLAINTEXT',
+    'SUPPLIER_TELEGRAM_ENABLED', 'TELEGRAM_ENABLED', 'COMMERCE_NOTIFY_EMAIL'] as $name) {
     $value = getenv($name);
     if ($value === false) {
         throw new RuntimeException('Run tests with the project phpunit.xml configuration.');

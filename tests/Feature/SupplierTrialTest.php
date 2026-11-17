@@ -38,8 +38,10 @@ class SupplierTrialTest extends TestCase
 
     private function configuration(): string
     {
-        Storage::disk('local')->put('supplier-trial/connection.env', "SUPPLIER_TRIAL_DATABASE=usbstock_dev\nSUPPLIER_FTP_HOST=supplier.example.test\nSUPPLIER_FTP_USER=synthetic-reader\nSUPPLIER_FTP_PASSWORD=synthetic-secret\nSUPPLIER_FTP_PROTOCOL=ftp\nSUPPLIER_FTP_PORT=21\nSUPPLIER_FTP_PATH=/FTP/Existencias-ftp-precio.csv\nSUPPLIER_TRIAL_ALLOW_PLAINTEXT=true\n");
-        chmod(Storage::disk('local')->path('supplier-trial/connection.env'), 0600);
+        config(['commerce.sync.trial_database' => 'usbstock_dev', 'commerce.sync.ftp_host' => 'supplier.example.test',
+            'commerce.sync.ftp_user' => 'synthetic-reader', 'commerce.sync.ftp_password' => 'synthetic-secret',
+            'commerce.sync.ftp_protocol' => 'ftps-explicit', 'commerce.sync.ftp_port' => 21,
+            'commerce.sync.ftp_path' => '/FTP/Existencias-ftp-precio.csv', 'commerce.sync.trial_allow_plaintext' => false]);
         Storage::disk('local')->put('baseline.csv', self::CSV);
 
         return Storage::disk('local')->path('baseline.csv');
@@ -49,29 +51,43 @@ class SupplierTrialTest extends TestCase
     {
         $actor = $this->adminUser();
         $baseline = $this->configuration();
+        // A stale secondary file must never override or invalidate central configuration.
+        Storage::disk('local')->put('supplier-trial/connection.env', 'SUPPLIER_FTP_PASSWORD="broken obsolete value');
         $this->mock(SupplierDownloader::class)->shouldNotReceive('download');
         $this->artisan('supplier:trial', ['--actor' => $actor->id, '--baseline' => $baseline])->assertSuccessful();
+        $check = app(SupplierTrial::class)->preflight($actor, $baseline);
+        $this->assertTrue($check['ready']);
+        $this->assertFalse($check['network_used']);
+        $this->assertSame('ftps-explicit', $check['protocol']);
         $this->assertDatabaseCount('supplier_sync_runs', 0);
         $this->assertDatabaseCount('products', 0);
         Http::assertNothingSent();
     }
 
-    public function test_download_requires_actor_private_settings_disabled_automation_and_plaintext_acceptance(): void
+    public function test_download_requires_actor_central_settings_disabled_automation_and_plaintext_acceptance(): void
     {
         $actor = $this->adminUser();
         $baseline = $this->configuration();
         $trial = app(SupplierTrial::class);
         $this->mock(SupplierDownloader::class)->shouldNotReceive('download');
-        config(['commerce.sync.auto_apply' => true]);
-        $this->assertContains('must_be_disabled:commerce.sync.auto_apply', $trial->preflight($actor, $baseline)['issues']);
-        $this->artisan('supplier:trial', ['--actor' => $actor->id, '--baseline' => $baseline, '--download' => true])->assertFailed();
-        config(['commerce.sync.auto_apply' => false]);
-        Storage::disk('local')->put('supplier-trial/connection.env', str_replace('ALLOW_PLAINTEXT=true', 'ALLOW_PLAINTEXT=false', Storage::disk('local')->get('supplier-trial/connection.env')));
+        foreach (['commerce.sync.ftp_enabled', 'commerce.sync.enabled', 'commerce.sync.auto_apply', 'commerce.telegram_enabled',
+            'services.telegram.enabled', 'notifications.transports.telegram.enabled', 'commerce.notify_email'] as $flag) {
+            config([$flag => true]);
+            $this->assertContains('must_be_disabled:'.$flag, $trial->preflight($actor, $baseline)['issues']);
+            $this->artisan('supplier:trial', ['--actor' => $actor->id, '--baseline' => $baseline, '--download' => true])->assertFailed();
+            config([$flag => false]);
+        }
+        config(['commerce.sync.ftp_protocol' => 'ftp']);
         $this->assertContains('plaintext_requires_explicit_acceptance', $trial->preflight($actor, $baseline)['issues']);
+        config(['commerce.sync.trial_allow_plaintext' => true]);
+        $this->assertTrue($trial->preflight($actor, $baseline)['ready']);
+        config(['commerce.sync.ftp_protocol' => 'ftps-implicit', 'commerce.sync.ftp_port' => 990, 'commerce.sync.trial_allow_plaintext' => false]);
+        $this->assertTrue($trial->preflight($actor, $baseline)['ready']);
         $this->assertContains('actor_not_authorized', $trial->preflight($this->userWithRole('operator'), $baseline)['issues']);
-        Storage::disk('local')->put('supplier-trial/connection.env', 'SUPPLIER_FTP_PASSWORD="sensitive broken value');
+        config(['commerce.sync.ftp_host' => '', 'commerce.sync.ftp_password' => 'sensitive test value']);
         Artisan::call('supplier:trial', ['--actor' => $actor->id, '--baseline' => $baseline, '--download' => true]);
-        $this->assertStringNotContainsString('sensitive broken', Artisan::output());
+        $this->assertStringNotContainsString('sensitive test value', Artisan::output());
+        $this->assertContains('missing:SUPPLIER_FTP_HOST', $trial->preflight($actor, $baseline)['issues']);
         $this->assertDatabaseCount('supplier_sync_runs', 0);
     }
 
@@ -82,7 +98,16 @@ class SupplierTrialTest extends TestCase
         $sync = app(SupplierSync::class);
         $sync->apply($sync->preview(self::CSV, 'fixture.csv', $actor->id), $actor->id);
         $before = app(SupplierCatalogFingerprint::class)->capture();
-        $this->mock(SupplierDownloader::class)->shouldReceive('download')->once()->andReturn(str_replace(',100,', ',90,', self::CSV));
+        $centralSettings = config('commerce.sync');
+        $this->mock(SupplierDownloader::class)->shouldReceive('download')->once()->andReturnUsing(function () use ($centralSettings): string {
+            foreach (['ftp_host', 'ftp_port', 'ftp_user', 'ftp_password', 'ftp_path', 'ftp_protocol'] as $key) {
+                $this->assertSame($centralSettings[$key], config('commerce.sync.'.$key));
+            }
+            $this->assertTrue(config('commerce.sync.ftp_enabled'));
+            $this->assertSame(1, config('commerce.sync.download_attempts'));
+
+            return str_replace(',100,', ',90,', self::CSV);
+        });
         $report = app(SupplierTrial::class)->download($actor, $baseline);
         $this->assertTrue($report['catalog_unchanged']);
         $this->assertFalse($report['applied']);
@@ -93,6 +118,7 @@ class SupplierTrialTest extends TestCase
         $this->assertFalse(config('commerce.sync.ftp_enabled'));
         $this->assertFalse((bool) config('commerce.sync.read_only'));
         $this->assertSame(2, config('commerce.sync.download_attempts'));
+        $this->assertSame($centralSettings, collect(config('commerce.sync'))->except('read_only')->all());
         $json = Storage::disk('local')->get($report['report_path']);
         foreach (['123.45', '12345', 'synthetic-secret', 'Descripción privada'] as $secret) {
             $this->assertStringNotContainsString($secret, $json);

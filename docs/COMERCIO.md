@@ -10,7 +10,11 @@ Validación: `php artisan test --compact`; pruebas MariaDB exclusivamente con `p
 
 ## Preparación del ensayo FTP real
 
-supplier:trial hace preflight sin red por defecto. Requiere configuración privada en storage/app/private/supplier-trial/connection.env, creada desde config/supplier-trial.env.example sin sobrescribir archivos existentes. Host, usuario y contraseña todavía están pendientes. No introducir secretos en Git o argumentos.
+supplier:trial hace preflight sin red por defecto. Comparte con la sincronización ordinaria config/commerce.php y las variables SUPPLIER_FTP_* del .env principal, excluido de Git. No lee archivos secundarios ni env() directamente. .env.example contiene nombres y valores seguros sin credenciales. El archivo connection.env y su plantilla se retiraron tras comprobar que no había credenciales que conservar. No introducir secretos en Git, argumentos o logs.
+
+Preparación: SUPPLIER_FTP_PROTOCOL=ftps-explicit, SUPPLIER_FTP_PORT=21, SUPPLIER_FTP_PATH=/FTP/Existencias-ftp-precio.csv, SUPPLIER_TRIAL_DATABASE=usbstock_dev y SUPPLIER_TRIAL_ALLOW_PLAINTEXT=false. Conservar apagados FTP global, Scheduler comercial, autoaplicación y Telegram, y correo comercial vacío. Los protocolos ftp/ftps-explicit/ftps-implicit siguen configurables por entorno sin cambiar código; no hay degradación automática.
+
+Windows: .env con ACL protegida y sin permisos generales de Usuarios/Usuarios autenticados; conservar solo propietario, administración/SYSTEM y accesos de ejecución necesarios. IONOS/Plesk: .env 0600, propietario del sitio compartido por PHP/CLI, fuera de public. No generar config:cache local con secretos durante pruebas; en un despliegue autorizado, el caché derivado contiene secretos y requiere la misma protección, nunca Git. Tras modificar .env, retirar o regenerar ese caché con permisos privados antes de verificar configuración efectiva.
 
 Solo después de autorización expresa, supplier:trial --download --actor=1 --baseline=RUTA_PRIVADA_MARZO realiza dos consultas de metadatos y una descarga del archivo permitido. Fuerza lectura, inhibe avisos, verifica huellas del catálogo, guarda CSV/hash/informe comparativo y restaura la configuración temporal. No acepta --apply. supplier:sync --dry-run comparte el bloqueo de aplicación y supresión de avisos.
 
@@ -18,13 +22,17 @@ El cliente controla EPSV/PASV, tamaño/fecha remota antes y después, transferen
 
 supplier:compare BASELINE CURRENT compara por SKU normalizado sin red ni consultas de catálogo. Guarda listas de SKU y resumen, sin costos individuales/textos. Diferencia cambios reales de orden/notación; invalida toda comparación si un CSV falla. La prueba con la copia histórica consigo misma dio cero diferencias, sin afirmar que exista una entrega actual.
 
-Validación: 273 pruebas generales / 2,868 aserciones y 9 MariaDB / 864 aserciones; **282 aprobadas / 3,732 aserciones**, cero fallos. Las nueve MariaDB se omiten en la suite general y se ejecutan después en el runner aislado. Revalidación final de servicios modificados: 22 / 510, sin duplicar el total. Matriz de 14 escenarios de transferencia con catálogo intacto y sin avisos. Composer validate --strict, check-platform-reqs --no-dev, Pint y git diff --check aprobados. Esquema dev/test: 364 columnas, 170 entradas de índices, 26 claves foráneas y cero diferencias; desarrollo conserva 25 migraciones y 38 tablas.
+Centralización: **273 pruebas aprobadas / 2,895 aserciones**, cero fallos. Nueve MariaDB omitidas deliberadamente; no se repitió su runner en esta tarea. PHPUnit fuerza credenciales sintéticas y SQLite :memory:. Preflight posterior: **ready=true, network_used=false, issues=[]**, actor 1, usbstock_dev y FTPS explícito:21. Credenciales incorporadas con autorización únicamente al .env, ACL restringida y resto del archivo preservado. Composer/Pint/diff aprobados.
+
+Validación previa (05656b5): 273 pruebas generales / 2,868 aserciones y 9 MariaDB / 864 aserciones; **282 aprobadas / 3,732 aserciones**, cero fallos. Las nueve MariaDB se omiten en la suite general y se ejecutan después en el runner aislado. Revalidación final de servicios modificados: 22 / 510, sin duplicar el total. Matriz de 14 escenarios de transferencia con catálogo intacto y sin avisos. Composer validate --strict, check-platform-reqs --no-dev, Pint y git diff --check aprobados. Esquema dev/test: 364 columnas, 170 entradas de índices, 26 claves foráneas y cero diferencias; desarrollo conserva 25 migraciones y 38 tablas.
 
 Documentación canónica fuera de Git: ENSAYO_FTP_CONTROLADO_USBSTOCK.md, ENSAYO_REAL_PROVEEDOR_USBSTOCK.md y PREPARACION_IONOS_USBSTOCK.md. La importación de marzo como inventario actual ya no es el procedimiento propuesto. La primera importación requiere una entrega nueva revisada, respaldo restaurable, hash y permiso independiente. Las alertas frente a marzo requieren revisión aunque el catálogo de desarrollo esté vacío.
 
 No hubo conexiones al proveedor, importación real, Telegram, Scheduler, despliegue ni DNS. El catálogo de desarrollo sigue vacío y con revisión 0. Las diferencias de users/sessions respecto al snapshot de la fase previa no se revierten ni se atribuyen a la importación; esta fase no generó corridas reales.
 
 ## Historial — política CSV implementada
+
+Requisito comercial confirmado posteriormente: **todas las nuevas cotizaciones PDF deberán diseñarse en Carta vertical (Letter, 8.5 × 11 pulgadas)**. La adaptación del diseño queda para otra tarea. La plantilla oficial y los PDF históricos no se modificaron en la centralización de configuración; las referencias a A4 siguientes describen verificaciones anteriores.
 
 La política versión 2 consolida duplicados idénticos normalizados y conserva todas sus referencias y el CSV original. Conflictos rechazan el archivo completo. Texto vacío retiene texto válido previo con procedencia o deja contenido pendiente; stock cero sigue válido. No se modificaron umbrales económicos, bloqueo, revisión, caducidad, idempotencia, personalizaciones ni snapshots de cotización.
 

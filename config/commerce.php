@@ -23,6 +23,8 @@ return [
         // Must be explicitly selected after checking the supplier contract. Never silently downgrade TLS.
         'ftp_protocol' => env('SUPPLIER_FTP_PROTOCOL'),
         'download_attempts' => (int) env('SUPPLIER_DOWNLOAD_ATTEMPTS', 2),
+        'trial_database' => env('SUPPLIER_TRIAL_DATABASE'),
+        'trial_allow_plaintext' => (bool) env('SUPPLIER_TRIAL_ALLOW_PLAINTEXT', false),
         'deactivate_missing' => (bool) env('SUPPLIER_DEACTIVATE_MISSING', false),
     ],
 ];
