@@ -12,6 +12,9 @@ final class SupplierNotifications
 {
     public function record(SupplierSyncRun $run): void
     {
+        if (config('commerce.sync.read_only')) {
+            return;
+        }
         try {
             $notice = SupplierSyncNotification::firstOrCreate(
                 ['supplier_sync_run_id' => $run->id, 'event' => $run->status],

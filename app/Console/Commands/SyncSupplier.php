@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Commerce\CommerceAccess;
 use App\Commerce\SupplierNotifications;
 use App\Commerce\SupplierPipeline;
+use App\Commerce\SupplierReadOnly;
 use App\Commerce\SupplierSync;
 use App\Models\User;
 use App\Support\AdminAuditLogger;
@@ -17,6 +18,15 @@ class SyncSupplier extends Command
     protected $description = 'Valida un CSV local o descarga autorizada; por defecto solo genera vista previa';
 
     public function handle(SupplierSync $sync, SupplierPipeline $pipeline, SupplierNotifications $notifications): int
+    {
+        if ($this->option('dry-run')) {
+            return app(SupplierReadOnly::class)->run(fn () => $this->executeSync($sync, $pipeline, $notifications));
+        }
+
+        return $this->executeSync($sync, $pipeline, $notifications);
+    }
+
+    private function executeSync(SupplierSync $sync, SupplierPipeline $pipeline, SupplierNotifications $notifications): int
     {
         try {
             $scheduled = (bool) $this->option('scheduled');

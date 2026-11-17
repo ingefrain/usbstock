@@ -13,6 +13,9 @@ final class SupplierPipeline
 
     public function fetch(int $actorId, bool $apply = false, bool $scheduled = false): SupplierSyncRun
     {
+        if (config('commerce.sync.read_only')) {
+            $apply = $scheduled = false;
+        }
         $dailyKey = $scheduled ? now('America/Mexico_City')->format('Y-m-d') : null;
         $run = DB::transaction(function () use ($actorId, $dailyKey): SupplierSyncRun {
             $lock = DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
@@ -65,6 +68,9 @@ final class SupplierPipeline
             abort_unless($lease->sync_uuid === $run->uuid && now()->lt($lease->sync_expires_at), 409, 'La ejecución perdió su bloqueo.');
             $run->update(['phase' => 'processing']);
             $run = $this->sync->preview($bytes, basename((string) config('commerce.sync.ftp_path', 'provider.csv')), $actorId, 'ftp', $run);
+            if ($this->download->lastTransfer !== []) {
+                $run->update(['summary' => array_merge($run->summary, ['transfer' => $this->download->lastTransfer])]);
+            }
             if ($apply && $run->status === 'ready') {
                 if (SupplierSyncRun::where('status', 'review')->whereKeyNot($run->id)->exists()) {
                     $run->update(['status' => 'review', 'error_code' => 'prior_review_pending']);

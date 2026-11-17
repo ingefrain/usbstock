@@ -8,7 +8,23 @@ La configuración comercial debe contener emisor y condiciones reales. SUPPLIER_
 
 Validación: `php artisan test --compact`; pruebas MariaDB exclusivamente con `php tests/Support/run_mariadb_tests.php` y archivo privado `.env.testing.mariadb`. El runner exige base y usuario dedicados y comprueba la finalización de nueve pruebas. No ejecutar ambas suites a la vez. `npm run build`, `composer validate --strict` y `php vendor/bin/pint --dirty --test` completan los controles locales.
 
-## Política CSV implementada
+## Preparación del ensayo FTP real
+
+supplier:trial hace preflight sin red por defecto. Requiere configuración privada en storage/app/private/supplier-trial/connection.env, creada desde config/supplier-trial.env.example sin sobrescribir archivos existentes. Host, usuario y contraseña todavía están pendientes. No introducir secretos en Git o argumentos.
+
+Solo después de autorización expresa, supplier:trial --download --actor=1 --baseline=RUTA_PRIVADA_MARZO realiza dos consultas de metadatos y una descarga del archivo permitido. Fuerza lectura, inhibe avisos, verifica huellas del catálogo, guarda CSV/hash/informe comparativo y restaura la configuración temporal. No acepta --apply. supplier:sync --dry-run comparte el bloqueo de aplicación y supresión de avisos.
+
+El cliente controla EPSV/PASV, tamaño/fecha remota antes y después, transferencia binaria y presupuesto de 120 s. Detiene metadata ausente, cambios, bytes incompletos, autenticación/certificado y timeout. Se corrigieron aliases de error ausentes en PHP 8.2 Windows. Tres handles por intento, cerrados en finally; un solo intento en el ensayo. No se validó conectividad real ni disponibilidad FTPS/SIZE/MDTM.
+
+supplier:compare BASELINE CURRENT compara por SKU normalizado sin red ni consultas de catálogo. Guarda listas de SKU y resumen, sin costos individuales/textos. Diferencia cambios reales de orden/notación; invalida toda comparación si un CSV falla. La prueba con la copia histórica consigo misma dio cero diferencias, sin afirmar que exista una entrega actual.
+
+Validación: 273 pruebas generales / 2,868 aserciones y 9 MariaDB / 864 aserciones; **282 aprobadas / 3,732 aserciones**, cero fallos. Las nueve MariaDB se omiten en la suite general y se ejecutan después en el runner aislado. Revalidación final de servicios modificados: 22 / 510, sin duplicar el total. Matriz de 14 escenarios de transferencia con catálogo intacto y sin avisos. Composer validate --strict, check-platform-reqs --no-dev, Pint y git diff --check aprobados. Esquema dev/test: 364 columnas, 170 entradas de índices, 26 claves foráneas y cero diferencias; desarrollo conserva 25 migraciones y 38 tablas.
+
+Documentación canónica fuera de Git: ENSAYO_FTP_CONTROLADO_USBSTOCK.md, ENSAYO_REAL_PROVEEDOR_USBSTOCK.md y PREPARACION_IONOS_USBSTOCK.md. La importación de marzo como inventario actual ya no es el procedimiento propuesto. La primera importación requiere una entrega nueva revisada, respaldo restaurable, hash y permiso independiente. Las alertas frente a marzo requieren revisión aunque el catálogo de desarrollo esté vacío.
+
+No hubo conexiones al proveedor, importación real, Telegram, Scheduler, despliegue ni DNS. El catálogo de desarrollo sigue vacío y con revisión 0. Las diferencias de users/sessions respecto al snapshot de la fase previa no se revierten ni se atribuyen a la importación; esta fase no generó corridas reales.
+
+## Historial — política CSV implementada
 
 La política versión 2 consolida duplicados idénticos normalizados y conserva todas sus referencias y el CSV original. Conflictos rechazan el archivo completo. Texto vacío retiene texto válido previo con procedencia o deja contenido pendiente; stock cero sigue válido. No se modificaron umbrales económicos, bloqueo, revisión, caducidad, idempotencia, personalizaciones ni snapshots de cotización.
 

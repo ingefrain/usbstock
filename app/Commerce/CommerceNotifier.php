@@ -9,6 +9,9 @@ final class CommerceNotifier
 {
     public function queue(string $event, string $reference, string $message): void
     {
+        if (config('commerce.sync.read_only')) {
+            return;
+        }
         $recipient = config('commerce.notify_email');
         if (! is_string($recipient) || $recipient === '') {
             return;

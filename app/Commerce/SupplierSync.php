@@ -78,6 +78,7 @@ final class SupplierSync
 
     public function apply(SupplierSyncRun $run, ?int $actorId, bool $deactivateMissing = false, bool $approveLargeChanges = false, bool $automated = false): SupplierSyncRun
     {
+        abort_if(config('commerce.sync.read_only'), 409, 'El ensayo de solo lectura no permite aplicar inventario.');
         $started = microtime(true);
 
         $result = DB::transaction(function () use ($run, $actorId, $deactivateMissing, $approveLargeChanges, $started, $automated): SupplierSyncRun {
@@ -100,6 +101,7 @@ final class SupplierSync
             $data = $this->rows($run);
             abort_if($data['errors'] !== [] || $data['rows'] === [], 409, 'Archivo inválido.');
             [$rows, $summary, $modelDescriptions] = $this->prepare($data);
+            $summary += array_intersect_key($run->summary ?? [], ['transfer' => true, 'trial' => true]);
             abort_if($summary['suspicious'] && ! $approveLargeChanges, 409, 'Los cambios importantes requieren revisión adicional.');
             $models = [];
             foreach (($summary['new'] + $summary['changed'] + $summary['models_changed'] > 0 ? $rows : []) as $row) {
