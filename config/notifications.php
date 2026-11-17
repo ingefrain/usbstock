@@ -14,6 +14,7 @@ return [
             'enabled' => (bool) env('TELEGRAM_ENABLED', false),
             'label' => 'Telegram',
             'class' => TelegramOutboxTransport::class,
+            'max_attempts' => (int) env('TELEGRAM_MAX_ATTEMPTS', 6),
         ],
     ],
     'branding' => [

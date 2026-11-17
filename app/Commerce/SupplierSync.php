@@ -15,17 +15,20 @@ final class SupplierSync
 {
     public function __construct(private SupplierCsv $csv, private AdminAuditLogger $audit) {}
 
-    public function preview(string $bytes, string $filename, ?int $actorId, string $source = 'local'): SupplierSyncRun
+    public function preview(string $bytes, string $filename, ?int $actorId, string $source = 'local', ?SupplierSyncRun $execution = null): SupplierSyncRun
     {
         $started = microtime(true);
         abort_if(strlen($bytes) > config('commerce.sync.max_bytes'), 422, 'Archivo demasiado grande.');
-        $uuid = (string) Str::uuid();
+        $uuid = $execution?->uuid ?? (string) Str::uuid();
         $path = 'supplier-sync/'.$uuid.'.csv';
         if (! Storage::disk('local')->put($path, $bytes)) {
             throw ValidationException::withMessages(['file' => 'No se pudo guardar el archivo privado.']);
         }
+        if ($execution) {
+            $execution->update(['path' => $path, 'sha256' => hash('sha256', $bytes)]);
+        }
         try {
-            return DB::transaction(function () use ($bytes, $filename, $actorId, $source, $started, $uuid, $path): SupplierSyncRun {
+            $result = DB::transaction(function () use ($bytes, $filename, $actorId, $source, $started, $uuid, $path, $execution): SupplierSyncRun {
                 $lock = DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
                 try {
                     $data = $this->csv->parse($bytes);
@@ -33,23 +36,35 @@ final class SupplierSync
                     $data = ['rows' => [], 'errors' => [['row' => 0, 'message' => $error->validator->errors()->first()]], 'sha256' => hash('sha256', $bytes)];
                 }
                 $summary = $this->compare($data['rows']);
-                $run = SupplierSyncRun::create([
+                $run = $execution ?? new SupplierSyncRun;
+                $run->fill([
                     'uuid' => $uuid, 'created_by' => $actorId, 'source' => $source,
-                    'filename' => Str::limit(basename(str_replace('\\', '/', $filename)), 170, ''),
+                    'filename' => self::safeFilename($filename),
                     'path' => $path, 'sha256' => $data['sha256'], 'base_revision' => $lock->catalog_revision,
                     'row_count' => count($data['rows']), 'summary' => $summary, 'errors' => $data['errors'],
                     'status' => $data['errors'] ? 'invalid' : ($summary['suspicious'] ? 'review' : 'ready'),
                     'duration_ms' => (int) ((microtime(true) - $started) * 1000),
-                ]);
+                    'started_at' => $execution?->started_at ?? now(), 'finished_at' => $execution ? null : now(), 'phase' => 'validation',
+                    'differences' => $this->differences($data['rows']),
+                ])->save();
                 $this->audit->record('supplier_sync.previewed', 'supplier_sync', $uuid, after: ['status' => $run->status, 'rows' => $run->row_count], actorId: $actorId);
-                app(CommerceNotifier::class)->queue('sync.'.$run->status, $run->uuid, 'Validación del proveedor: '.$run->status.'. Registros: '.$run->row_count.'.');
 
                 return $run;
             });
+            app(CommerceNotifier::class)->queue('sync.'.$result->status, $result->uuid, 'Validación del proveedor: '.$result->status.'. Registros: '.$result->row_count.'.');
+
+            return $result;
         } catch (\Throwable $error) {
-            Storage::disk('local')->delete($path);
+            if (! $execution) {
+                Storage::disk('local')->delete($path);
+            }
             throw $error;
         }
+    }
+
+    public static function safeFilename(string $filename): string
+    {
+        return Str::limit(preg_replace('/[^a-zA-Z0-9._-]/', '_', basename(str_replace('\\', '/', $filename))), 170, '') ?: 'provider.csv';
     }
 
     public function rows(SupplierSyncRun $run): array
@@ -61,13 +76,24 @@ final class SupplierSync
         return $this->csv->parse($bytes);
     }
 
-    public function apply(SupplierSyncRun $run, ?int $actorId, bool $deactivateMissing = false, bool $approveLargeChanges = false): SupplierSyncRun
+    public function apply(SupplierSyncRun $run, ?int $actorId, bool $deactivateMissing = false, bool $approveLargeChanges = false, bool $automated = false): SupplierSyncRun
     {
         $started = microtime(true);
 
-        return DB::transaction(function () use ($run, $actorId, $deactivateMissing, $approveLargeChanges, $started): SupplierSyncRun {
+        $result = DB::transaction(function () use ($run, $actorId, $deactivateMissing, $approveLargeChanges, $started, $automated): SupplierSyncRun {
             $lock = DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
             $run = SupplierSyncRun::query()->lockForUpdate()->findOrFail($run->id);
+            if ($run->status === 'completed') {
+                return $run;
+            }
+            if ($automated && SupplierSyncRun::where('status', 'review')->whereKeyNot($run->id)->exists()) {
+                $run->update(['status' => 'review', 'phase' => 'validation', 'error_code' => 'prior_review_pending']);
+
+                return $run;
+            }
+            if ($run->source === 'ftp' && $run->phase === 'apply') {
+                abort_unless($lock->sync_uuid === $run->uuid && now()->lt($lock->sync_expires_at), 409, 'La ejecución perdió su bloqueo.');
+            }
             abort_unless(in_array($run->status, ['ready', 'review'], true), 409, 'La corrida no está disponible para aplicar.');
             abort_unless((int) $run->base_revision === (int) $lock->catalog_revision, 409, 'El catálogo cambió. Genera otra vista previa.');
             abort_if($run->created_at->lt(now()->subDays(7)), 409, 'La vista previa expiró.');
@@ -76,7 +102,7 @@ final class SupplierSync
             $summary = $this->compare($data['rows']);
             abort_if($summary['suspicious'] && ! $approveLargeChanges, 409, 'Los cambios importantes requieren revisión adicional.');
             $models = [];
-            foreach ($data['rows'] as $row) {
+            foreach (($summary['new'] + $summary['changed'] > 0 ? $data['rows'] : []) as $row) {
                 if (! isset($models[$row['model']])) {
                     $product = Product::firstOrNew(['external_key' => $row['model']]);
                     if (! $product->exists) {
@@ -96,13 +122,42 @@ final class SupplierSync
                 $summary['deactivated'] = ProductVariant::where('provider_active', true)->whereNotIn('sku', array_keys($data['rows']))->update(['provider_active' => false]);
                 Product::whereDoesntHave('variants', fn ($q) => $q->where('provider_active', true))->update(['provider_active' => false]);
             }
-            DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
-            $run->update(['status' => 'completed', 'summary' => $summary, 'applied_at' => now(), 'duration_ms' => $run->duration_ms + (int) ((microtime(true) - $started) * 1000)]);
+            if ($summary['new'] + $summary['changed'] + $summary['deactivated'] > 0) {
+                DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
+            }
+            $run->update(['status' => 'completed', 'phase' => 'complete', 'finished_at' => now(), 'summary' => $summary, 'applied_at' => now(), 'duration_ms' => $run->duration_ms + (int) ((microtime(true) - $started) * 1000)]);
             $this->audit->record('supplier_sync.applied', 'supplier_sync', $run->uuid, after: $summary, actorId: $actorId);
-            app(CommerceNotifier::class)->queue('sync.completed', $run->uuid, 'La sincronización del catálogo se aplicó correctamente.');
 
             return $run;
         });
+        if ($result->status === 'completed') {
+            app(CommerceNotifier::class)->queue('sync.completed', $result->uuid, 'La sincronización del catálogo se aplicó correctamente.');
+        }
+
+        return $result;
+    }
+
+    private function differences(array $rows): array
+    {
+        $known = ProductVariant::all()->keyBy('sku');
+        $differences = [];
+        foreach ($rows as $sku => $row) {
+            $old = $known->get($sku);
+            if (! $old || ! $old->provider_active || $old->stock !== $row['stock'] || $old->supplier_price_minor !== $row['supplier_price_minor'] || $old->supplier_description !== $row['supplier_description']) {
+                $differences[] = ['sku' => $sku, 'kind' => $old ? 'changed' : 'new', 'stock_before' => $old?->stock, 'stock_after' => $row['stock'], 'cost_before' => $old?->supplier_price_minor, 'cost_after' => $row['supplier_price_minor'], 'description_changed' => $old && $old->supplier_description !== $row['supplier_description']];
+            }
+            if (count($differences) >= 200) {
+                return $differences;
+            }
+        }
+        foreach ($known->where('provider_active', true)->except(array_keys($rows)) as $old) {
+            $differences[] = ['sku' => $old->sku, 'kind' => 'missing', 'stock_before' => $old->stock, 'stock_after' => null, 'cost_before' => $old->supplier_price_minor, 'cost_after' => null, 'description_changed' => false];
+            if (count($differences) >= 200) {
+                break;
+            }
+        }
+
+        return $differences;
     }
 
     private function compare(array $rows): array

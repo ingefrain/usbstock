@@ -64,8 +64,9 @@ final class QuoteService
     {
         abort_unless(Str::isUuid($requestKey), 422);
         $path = null;
+        $assetPaths = [];
         try {
-            return DB::transaction(function () use ($quote, $revision, $requestKey, $actorId, &$path) {
+            return DB::transaction(function () use ($quote, $revision, $requestKey, $actorId, &$path, &$assetPaths) {
                 $lock = DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
                 $quote = Quote::lockForUpdate()->findOrFail($quote->id);
                 if ($existing = QuoteVersion::where('request_key', $requestKey)->first()) {
@@ -97,10 +98,11 @@ final class QuoteService
                     $quote->folio = 'USB-'.now()->format('Y').'-'.str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
                 }
                 $version = $quote->versions()->count() + 1;
+                $uuid = (string) Str::uuid();
+                app(QuotePhotos::class)->freeze($quote, $uuid, $lines, $assetPaths);
                 $snapshot = ['folio' => $quote->folio, 'version' => $version, 'issued_at' => now()->toIso8601String(), 'valid_until' => now()->addDays($quote->validity_days)->toDateString(),
                     'issuer' => $settings, 'customer' => $quote->customer, 'seller' => $quote->seller, 'terms' => $quote->terms, 'tax_basis_points' => $quote->tax_basis_points, 'items' => $lines, 'totals' => $totals, 'calculation_version' => 'legacy_v1'];
                 $bytes = $this->pdf->render($snapshot);
-                $uuid = (string) Str::uuid();
                 $path = 'quotes/'.$quote->uuid.'/'.$uuid.'.pdf';
                 if (! Storage::disk('local')->put($path, $bytes)) {
                     throw new \RuntimeException('No se pudo guardar el PDF privado.');
@@ -114,6 +116,9 @@ final class QuoteService
                 return $record;
             });
         } catch (\Throwable $error) {
+            foreach ($assetPaths as $assetPath) {
+                Storage::disk('local')->delete($assetPath);
+            }
             if ($path) {
                 Storage::disk('local')->delete($path);
             } throw $error;

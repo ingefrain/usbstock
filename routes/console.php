@@ -19,11 +19,7 @@ if (config('security.login_attempt_schedule_prune', true)) {
     Schedule::command('security:prune-login-attempts')->daily()->withoutOverlapping();
 }
 
-if (config('commerce.sync.enabled')) {
-    $options = ['--fetch' => true];
-    if (config('commerce.sync.auto_apply')) {
-        $options['--apply'] = true;
-        $options['--actor'] = config('commerce.sync.actor_id');
-    }
-    Schedule::command('supplier:sync', $options)->hourly()->withoutOverlapping(15)->appendOutputTo(storage_path('logs/supplier-sync.log'));
-}
+Schedule::command('supplier:sync --fetch --scheduled')
+    ->dailyAt('00:00')->timezone('America/Mexico_City')
+    ->when(fn () => (bool) config('commerce.sync.enabled'))
+    ->withoutOverlapping(15)->appendOutputTo(storage_path('logs/supplier-sync.log'));

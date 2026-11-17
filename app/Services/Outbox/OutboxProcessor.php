@@ -51,7 +51,8 @@ class OutboxProcessor
             return false;
         }
 
-        $terminal = $result->status === OutboxTransportResult::PERMANENT_FAILURE || $message->attempts >= self::MAX_ATTEMPTS;
+        $maxAttempts = $message->channel === 'telegram' ? max(1, min(self::MAX_ATTEMPTS, (int) config('notifications.transports.telegram.max_attempts', self::MAX_ATTEMPTS))) : self::MAX_ATTEMPTS;
+        $terminal = $result->status === OutboxTransportResult::PERMANENT_FAILURE || $message->attempts >= $maxAttempts;
         $delay = self::RETRY_DELAYS[min(max($message->attempts - 1, 0), count(self::RETRY_DELAYS) - 1)];
         $retryAt = $result->retryAt && $result->retryAt->isFuture() ? $result->retryAt : now()->addSeconds($delay);
         $this->finishFailed($message->id, $attempt->id, $leaseToken, $terminal, $result, $terminal ? null : $retryAt);
@@ -65,6 +66,14 @@ class OutboxProcessor
     {
         $claim = DB::transaction(function () use ($messageId): ?array {
             $now = now();
+            $abandonedTelegram = OutboxMessage::whereKey($messageId)->where('channel', 'telegram')->where('status', OutboxMessage::PROCESSING)->where('lease_expires_at', '<=', $now)->lockForUpdate()->first();
+            if ($abandonedTelegram) {
+                // Telegram has no provider idempotency key: a crashed worker may have sent already.
+                $abandonedTelegram->update(['status' => OutboxMessage::UNCERTAIN, 'processed_at' => $now, 'lease_token' => null, 'lease_expires_at' => null, 'last_error_type' => 'delivery', 'last_error_code' => 'telegram.lease_expired', 'last_error_message' => 'No se puede confirmar la entrega del intento interrumpido.']);
+                OutboxAttempt::where('outbox_message_id', $messageId)->whereNull('finished_at')->update(['result' => 'uncertain', 'finished_at' => $now, 'error_type' => 'delivery', 'error_message' => 'No se reenvía automáticamente un intento de entrega incierta.']);
+
+                return null;
+            }
             $leaseToken = (string) Str::uuid();
             $updated = OutboxMessage::query()->whereKey($messageId)
                 ->where(function ($query) use ($now): void {

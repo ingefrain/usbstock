@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\CommercialConfigController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\QuoteController;
+use App\Http\Controllers\Admin\QuoteDesignController;
+use App\Http\Controllers\Admin\QuotePhotoController;
 use App\Http\Controllers\Admin\QuoteRequestController;
 use App\Http\Controllers\Admin\SupplierSyncController;
 use App\Http\Controllers\PublicQuoteRequestController;
@@ -20,6 +22,8 @@ Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remo
 Route::post('solicitar-cotizacion', [PublicQuoteRequestController::class, 'submit'])->middleware('throttle:5,10,commerce-request')->name('shop.request.submit');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'account.active', 'session.current'])->group(function (): void {
+    Route::get('pdf-designs', [QuoteDesignController::class, 'index'])->name('pdf-designs.index');
+    Route::get('pdf-designs/{concept}', [QuoteDesignController::class, 'preview'])->name('pdf-designs.preview');
     Route::get('quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
     Route::post('quote-requests/{request}/convert', [QuoteRequestController::class, 'convert'])->name('quote-requests.convert');
     Route::post('quote-requests/{request}/status', [QuoteRequestController::class, 'status'])->name('quote-requests.status');
@@ -28,6 +32,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'ac
     Route::post('quotes', [QuoteController::class, 'store'])->name('quotes.store');
     Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
     Route::put('quotes/{quote}', [QuoteController::class, 'update'])->name('quotes.update');
+    Route::post('quotes/{quote}/photo', [QuotePhotoController::class, 'store'])->name('quotes.photo');
+    Route::get('quotes/{quote}/preview', [QuotePhotoController::class, 'preview'])->name('quotes.preview');
     Route::post('quotes/{quote}/issue', [QuoteController::class, 'issue'])->name('quotes.issue');
     Route::post('quotes/{quote}/revise', [QuoteController::class, 'revise'])->name('quotes.revise');
     Route::get('quotes/{quote}/pdf/{version}', [QuoteController::class, 'download'])->name('quotes.download');
@@ -44,4 +50,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'ac
     Route::post('supplier-sync', [SupplierSyncController::class, 'store'])->name('supplier-sync.store');
     Route::get('supplier-sync/{run}', [SupplierSyncController::class, 'show'])->name('supplier-sync.show');
     Route::post('supplier-sync/{run}/apply', [SupplierSyncController::class, 'apply'])->name('supplier-sync.apply');
+    Route::post('supplier-sync/{run}/dismiss', [SupplierSyncController::class, 'dismiss'])->name('supplier-sync.dismiss');
 });

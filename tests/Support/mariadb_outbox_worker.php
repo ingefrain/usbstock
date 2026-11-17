@@ -1,5 +1,7 @@
 <?php
 
+use App\Commerce\SupplierDownloader;
+use App\Commerce\SupplierPipeline;
 use App\Commerce\SupplierSync;
 use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxProcessor;
@@ -42,7 +44,19 @@ while (! is_file($gate)) {
     usleep(10000);
 }
 
-if (($argv[3] ?? '') === 'commerce') {
+if (($argv[3] ?? '') === 'pipeline') {
+    config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb'), 'commerce.telegram_enabled' => false, 'commerce.notify_email' => null, 'queue.default' => 'sync']);
+    app()->instance(SupplierDownloader::class, new class extends SupplierDownloader
+    {
+        public function download(): string
+        {
+            usleep(500000);
+
+            return "SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,100,Prueba aislada,10.00";
+        }
+    });
+    echo app(SupplierPipeline::class)->fetch($messageId, true, true)->uuid;
+} elseif (($argv[3] ?? '') === 'commerce') {
     config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb')]);
     try {
         app(SupplierSync::class)->apply(SupplierSyncRun::findOrFail($messageId), null);

@@ -2,6 +2,8 @@
 
 return [
     'notify_email' => env('COMMERCE_NOTIFY_EMAIL'),
+    'telegram_enabled' => (bool) env('SUPPLIER_TELEGRAM_ENABLED', false),
+    'environment_label' => env('SUPPLIER_ENVIRONMENT_LABEL', env('APP_ENV', 'local')),
     'sync' => [
         'max_bytes' => 8 * 1024 * 1024,
         'max_rows' => 20000,
@@ -17,6 +19,9 @@ return [
         'ftp_user' => env('SUPPLIER_FTP_USER'),
         'ftp_password' => env('SUPPLIER_FTP_PASSWORD'),
         'ftp_path' => env('SUPPLIER_FTP_PATH'),
-        'ftp_tls' => (bool) env('SUPPLIER_FTP_TLS', true),
+        // Must be explicitly selected after checking the supplier contract. Never silently downgrade TLS.
+        'ftp_protocol' => env('SUPPLIER_FTP_PROTOCOL'),
+        'download_attempts' => (int) env('SUPPLIER_DOWNLOAD_ATTEMPTS', 2),
+        'deactivate_missing' => (bool) env('SUPPLIER_DEACTIVATE_MISSING', false),
     ],
 ];

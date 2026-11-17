@@ -7,6 +7,7 @@ use App\Commerce\SupplierSync;
 use App\Models\CommercialSetting;
 use App\Models\OutboxMessage;
 use App\Models\ProductVariant;
+use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxDispatcher;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Database\QueryException;
@@ -23,6 +24,33 @@ use Tests\TestCase;
 class MariaDbOutboxIntegrationTest extends TestCase
 {
     use InteractsWithBaseAdmin;
+
+    public function test_daily_supplier_pipeline_is_unique_across_independent_workers(): void
+    {
+        $actor = $this->adminUser();
+        $gate = tempnam(sys_get_temp_dir(), 'supplier-gate-');
+        unlink($gate);
+        $workers = collect([1, 2])->map(fn () => new Process([PHP_BINARY, base_path('tests/Support/mariadb_outbox_worker.php'), (string) $actor->id, $gate, 'pipeline'], base_path(), ['APP_ENV' => 'testing', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:']));
+        foreach ($workers as $worker) {
+            $worker->start();
+        }
+        touch($gate);
+        foreach ($workers as $worker) {
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+        }
+        unlink($gate);
+        $this->assertSame($workers[0]->getOutput(), $workers[1]->getOutput());
+        $this->assertDatabaseCount('supplier_sync_runs', 1);
+        $run = SupplierSyncRun::sole();
+        $this->assertSame('completed', $run->status);
+        $this->assertSame(1, $run->download_attempts);
+        $this->assertDatabaseCount('supplier_sync_notifications', 1);
+        $this->assertDatabaseCount('products', 1);
+        $this->assertSame(1, (int) DB::table('commerce_locks')->value('catalog_revision'));
+        $this->assertNull(DB::table('commerce_locks')->value('sync_uuid'));
+        Storage::build(['driver' => 'local', 'root' => storage_path('framework/testing/commerce-mariadb')])->delete($run->path);
+    }
 
     public function test_commerce_sync_serializes_two_independent_workers(): void
     {
@@ -130,7 +158,7 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-            $this->assertSame(23, DB::table('migrations')->count());
+            $this->assertSame(24, DB::table('migrations')->count());
         }
     }
 

@@ -41,8 +41,7 @@ class CommerceCatalogTest extends TestCase
         $this->assertTrue($product->fresh()->is_published);
         $this->assertFalse($product->variants()->first()->is_enabled);
         $this->assertSame(2200, $product->variants()->first()->supplier_price_minor);
-        $this->expectException(HttpException::class);
-        $sync->apply($next, null);
+        $this->assertSame($next->id, $sync->apply($next, null)->id);
     }
 
     public function test_invalid_partial_duplicate_corrupt_and_empty_files_cannot_change_catalog(): void

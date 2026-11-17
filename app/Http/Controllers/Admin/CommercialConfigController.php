@@ -21,6 +21,8 @@ final class CommercialConfigController
     {
         CommerceAccess::authorize('commerce.configure');
         $data = $request->validate(['issuer_name' => 'required|string|max:180', 'issuer_contact' => 'required|string|max:2000', 'terms' => 'nullable|string|max:6000', 'public_email' => 'nullable|email|max:180', 'public_phone' => 'nullable|string|max:50', 'about' => 'nullable|string|max:4000']);
+        $preference = $request->validate(['pdf_review_preference' => 'nullable|in:a,b,c']);
+        $data = array_merge($data, $preference);
         CommercialSetting::updateOrCreate(['id' => 1], ['data' => $data]);
         $audit->record('commerce.settings_updated', 'commerce', 1, after: ['fields' => array_keys($data)]);
 

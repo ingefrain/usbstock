@@ -36,6 +36,11 @@ class Quote extends Model
         return $this->hasMany(QuoteVersion::class)->orderByDesc('version');
     }
 
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
     public function getLabelAttribute(): string
     {
         return $this->folio ?? 'Borrador '.substr($this->uuid, 0, 8);

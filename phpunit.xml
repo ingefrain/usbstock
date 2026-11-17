@@ -32,6 +32,11 @@
         <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SUPPLIER_FTP_ENABLED" value="false" force="true"/>
+        <env name="SUPPLIER_SYNC_ENABLED" value="false" force="true"/>
+        <env name="SUPPLIER_TELEGRAM_ENABLED" value="false" force="true"/>
+        <env name="TELEGRAM_ENABLED" value="false" force="true"/>
+        <env name="COMMERCE_NOTIFY_EMAIL" value="" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

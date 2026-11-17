@@ -94,7 +94,7 @@ class CommerceAdminTest extends TestCase
     {
         $this->product();
         $this->mock(SupplierDownloader::class)->shouldReceive('download')->once()->andThrow(new \RuntimeException('Private connection detail'));
-        $this->artisan('supplier:sync', ['--fetch' => true])->assertExitCode(1);
+        $this->artisan('supplier:sync', ['--fetch' => true, '--actor' => $this->adminUser()->id])->assertExitCode(1);
         $this->assertSame(500, ProductVariant::sole()->stock);
         $this->assertDatabaseHas('admin_audit_events', ['action' => 'supplier_sync.failed']);
         $this->assertStringNotContainsString('Private connection detail', AdminAuditEvent::all()->toJson());

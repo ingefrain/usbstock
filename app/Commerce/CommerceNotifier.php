@@ -18,9 +18,13 @@ final class CommerceNotifier
 
             return;
         }
-        app(OutboxDispatcher::class)->email($recipient, [
-            'subject' => 'USB Stock · '.$event,
-            'message' => $message."\nReferencia: ".$reference."\nConsulta el panel administrativo para revisar los detalles.",
-        ], 'commerce', 'commerce:'.$event.':'.$reference, $reference);
+        try {
+            app(OutboxDispatcher::class)->email($recipient, [
+                'subject' => 'USB Stock · '.$event,
+                'message' => $message."\nReferencia: ".$reference."\nConsulta el panel administrativo para revisar los detalles.",
+            ], 'commerce', 'commerce:'.$event.':'.$reference, $reference);
+        } catch (\Throwable) {
+            Log::warning('commerce.notification_enqueue_failed', ['reference' => $reference]);
+        }
     }
 }
