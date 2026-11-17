@@ -55,17 +55,35 @@ class Product extends Model
 
     public function getDescriptionAttribute(): string
     {
-        return $this->custom_description ?? $this->supplier_description;
+        return trim($this->custom_description ?? '') !== '' ? $this->custom_description : ($this->supplier_description ?? '');
+    }
+
+    public function getContentReviewRequiredAttribute(): bool
+    {
+        return trim($this->description) === '';
+    }
+
+    public function scopeWithCommercialDescription($query)
+    {
+        return $query->where(function ($q): void {
+            foreach (['supplier_description', 'custom_description'] as $column) {
+                $expression = "COALESCE($column, '')";
+                foreach ([9, 10, 11, 12, 13] as $code) {
+                    $expression = "REPLACE($expression, CHAR($code), '')";
+                }
+                $q->orWhereRaw("TRIM($expression) <> ''");
+            }
+        });
     }
 
     public function scopePublished($query)
     {
-        return $query->where('is_published', true)->where('provider_active', true)->where(fn ($q) => $q->whereNull('product_category_id')->orWhereHas('category', fn ($c) => $c->where('is_published', true)));
+        return $query->withCommercialDescription()->where('is_published', true)->where('provider_active', true)->where(fn ($q) => $q->whereNull('product_category_id')->orWhereHas('category', fn ($c) => $c->where('is_published', true)));
     }
 
     public function isPublic(): bool
     {
-        return $this->is_published && $this->provider_active && (! $this->category || $this->category->is_published);
+        return ! $this->content_review_required && $this->is_published && $this->provider_active && (! $this->category || $this->category->is_published);
     }
 
     public function scopeCatalogVisible($query)

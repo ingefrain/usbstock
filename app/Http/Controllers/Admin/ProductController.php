@@ -11,6 +11,7 @@ use App\Support\ImpersonationManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class ProductController
 {
@@ -50,7 +51,11 @@ final class ProductController
         DB::transaction(function () use ($data, $request, $product, $documents, $audit): void {
             DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
             $product = Product::lockForUpdate()->findOrFail($product->id);
-            $product->fill(collect($data)->except(['image', 'remove_image', 'variants'])->all())->save();
+            $product->fill(collect($data)->except(['image', 'remove_image', 'variants'])->all());
+            if ($product->is_published && $product->content_review_required) {
+                throw ValidationException::withMessages(['is_published' => 'Para aprobar la publicación se requiere una descripción comercial del proveedor o personalizada.']);
+            }
+            $product->save();
             $actor = app(ImpersonationManager::class)->actor() ?? $request->user();
             if (($request->hasFile('image') || ($data['remove_image'] ?? false)) && $product->image) {
                 $documents->delete($product->image, $actor);
@@ -61,7 +66,7 @@ final class ProductController
             foreach ($data['variants'] ?? [] as $variant) {
                 $product->variants()->whereKey($variant['id'])->update(['color_name' => $variant['color_name'] ?? null, 'is_enabled' => (bool) $variant['is_enabled']]);
             }
-            $audit->record('product.updated', 'product', $product->uuid, after: ['fields' => array_keys($data), 'published' => $product->is_published]);
+            $audit->record('product.updated', 'product', $product->uuid, after: ['fields' => array_keys($data), 'published' => $product->is_published, 'description_source' => trim($product->custom_description ?? '') !== '' ? 'custom' : 'supplier']);
             DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
         });
 

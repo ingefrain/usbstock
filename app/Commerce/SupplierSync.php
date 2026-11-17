@@ -35,7 +35,7 @@ final class SupplierSync
                 } catch (ValidationException $error) {
                     $data = ['rows' => [], 'errors' => [['row' => 0, 'message' => $error->validator->errors()->first()]], 'sha256' => hash('sha256', $bytes)];
                 }
-                $summary = $this->compare($data['rows']);
+                [$rows, $summary] = $this->prepare($data);
                 $run = $execution ?? new SupplierSyncRun;
                 $run->fill([
                     'uuid' => $uuid, 'created_by' => $actorId, 'source' => $source,
@@ -45,7 +45,7 @@ final class SupplierSync
                     'status' => $data['errors'] ? 'invalid' : ($summary['suspicious'] ? 'review' : 'ready'),
                     'duration_ms' => (int) ((microtime(true) - $started) * 1000),
                     'started_at' => $execution?->started_at ?? now(), 'finished_at' => $execution ? null : now(), 'phase' => 'validation',
-                    'differences' => $this->differences($data['rows']),
+                    'differences' => $this->differences($rows),
                 ])->save();
                 $this->audit->record('supplier_sync.previewed', 'supplier_sync', $uuid, after: ['status' => $run->status, 'rows' => $run->row_count], actorId: $actorId);
 
@@ -99,16 +99,16 @@ final class SupplierSync
             abort_if($run->created_at->lt(now()->subDays(7)), 409, 'La vista previa expiró.');
             $data = $this->rows($run);
             abort_if($data['errors'] !== [] || $data['rows'] === [], 409, 'Archivo inválido.');
-            $summary = $this->compare($data['rows']);
+            [$rows, $summary, $modelDescriptions] = $this->prepare($data);
             abort_if($summary['suspicious'] && ! $approveLargeChanges, 409, 'Los cambios importantes requieren revisión adicional.');
             $models = [];
-            foreach (($summary['new'] + $summary['changed'] > 0 ? $data['rows'] : []) as $row) {
+            foreach (($summary['new'] + $summary['changed'] + $summary['models_changed'] > 0 ? $rows : []) as $row) {
                 if (! isset($models[$row['model']])) {
                     $product = Product::firstOrNew(['external_key' => $row['model']]);
                     if (! $product->exists) {
                         $product->slug = strtolower($row['model']);
                     }
-                    $product->fill(['supplier_description' => $row['supplier_description'], 'provider_active' => true, 'synced_at' => now()])->save();
+                    $product->fill(['supplier_description' => $modelDescriptions[$row['model']], 'provider_active' => true, 'synced_at' => now()])->save();
                     $models[$row['model']] = $product;
                 }
                 ProductVariant::updateOrCreate(['sku' => $row['sku']], [
@@ -122,11 +122,11 @@ final class SupplierSync
                 $summary['deactivated'] = ProductVariant::where('provider_active', true)->whereNotIn('sku', array_keys($data['rows']))->update(['provider_active' => false]);
                 Product::whereDoesntHave('variants', fn ($q) => $q->where('provider_active', true))->update(['provider_active' => false]);
             }
-            if ($summary['new'] + $summary['changed'] + $summary['deactivated'] > 0) {
+            if ($summary['new'] + $summary['changed'] + $summary['models_changed'] + $summary['deactivated'] > 0) {
                 DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
             }
             $run->update(['status' => 'completed', 'phase' => 'complete', 'finished_at' => now(), 'summary' => $summary, 'applied_at' => now(), 'duration_ms' => $run->duration_ms + (int) ((microtime(true) - $started) * 1000)]);
-            $this->audit->record('supplier_sync.applied', 'supplier_sync', $run->uuid, after: $summary, actorId: $actorId);
+            $this->audit->record('supplier_sync.applied', 'supplier_sync', $run->uuid, after: collect($summary)->except(['warnings', 'source_rows', 'description_sources', 'model_description_sources'])->all(), actorId: $actorId);
 
             return $run;
         });
@@ -135,6 +135,65 @@ final class SupplierSync
         }
 
         return $result;
+    }
+
+    /** Resolve retained text under the same catalog lock used by preview and apply. */
+    private function prepare(array $data): array
+    {
+        $rows = $data['rows'];
+        $known = ProductVariant::all()->keyBy('sku');
+        $products = Product::all()->keyBy('external_key');
+        $sources = $modelDescriptions = $modelSources = [];
+        $retained = 0;
+        foreach ($rows as $sku => &$row) {
+            $source = 'current_csv';
+            if ($row['supplier_description'] === '') {
+                $variantText = $known->get($sku)?->supplier_description ?? '';
+                $modelText = $products->get($row['model'])?->supplier_description ?? '';
+                $source = trim($variantText) !== '' ? 'retained_variant' : (trim($modelText) !== '' ? 'retained_model' : 'missing');
+                $row['supplier_description'] = match ($source) {
+                    'retained_variant' => $variantText, 'retained_model' => $modelText, default => '',
+                };
+                $retained += $source !== 'missing' ? 1 : 0;
+            }
+            $sources[$sku] = ['source' => $source, 'rows' => $data['source_rows'][$sku] ?? [], 'description_sha256' => hash('sha256', $row['supplier_description'])];
+            if (in_array($source, ['retained_variant', 'retained_model'], true)) {
+                $sources[$sku]['retained_text'] = $row['supplier_description'];
+            }
+            // Prefer a current nonblank supplier description to a retained variant.
+            if (! isset($modelDescriptions[$row['model']]) || ($source === 'current_csv' && $modelSources[$row['model']]['source'] !== 'current_csv')
+                || (trim($modelDescriptions[$row['model']]) === '' && trim($row['supplier_description']) !== '')) {
+                $modelDescriptions[$row['model']] = $row['supplier_description'];
+                $modelSources[$row['model']] = $sources[$sku] + ['sku' => $sku];
+            }
+        }
+        unset($row);
+        $pending = [];
+        $newModels = $changedModels = 0;
+        foreach ($modelDescriptions as $key => &$description) {
+            $product = $products->get($key);
+            if ($modelSources[$key]['source'] !== 'current_csv' && trim($product?->supplier_description ?? '') !== '') {
+                $description = $product->supplier_description;
+                $modelSources[$key] = ['source' => 'retained_model', 'description_sha256' => hash('sha256', $description), 'retained_text' => $description];
+            }
+            $newModels += $product ? 0 : 1;
+            $changedModels += $product && ($product->supplier_description !== $description || ! $product->provider_active) ? 1 : 0;
+            if (trim($description) === '' && trim($product?->custom_description ?? '') === '') {
+                $pending[] = (string) $key;
+            }
+        }
+        unset($description);
+        $summary = $this->compare($rows) + [
+            'policy_version' => 2, 'received_count' => $data['received_count'] ?? 0,
+            'unique_count' => $data['unique_count'] ?? 0, 'duplicates_consolidated' => $data['duplicates_consolidated'] ?? 0,
+            'empty_descriptions' => $data['empty_descriptions'] ?? 0, 'error_count' => $data['error_count'] ?? count($data['errors']),
+            'warnings' => $data['warnings'] ?? [], 'source_rows' => $data['source_rows'] ?? [],
+            'description_sources' => $sources, 'model_description_sources' => $modelSources,
+            'descriptions_retained' => $retained, 'pending_content' => $pending,
+            'model_count' => count($modelDescriptions), 'new_models' => $newModels, 'models_changed' => $changedModels,
+        ];
+
+        return [$rows, $summary, $modelDescriptions];
     }
 
     private function differences(array $rows): array

@@ -6,9 +6,25 @@ Los precios de venta e impresión son manuales hasta confirmar las escalas. `leg
 
 La configuración comercial debe contener emisor y condiciones reales. SUPPLIER_FTP_ENABLED, SUPPLIER_SYNC_ENABLED, SUPPLIER_SYNC_AUTO_APPLY y SUPPLIER_TELEGRAM_ENABLED quedan desactivados por defecto. COMMERCE_NOTIFY_EMAIL es opcional y utiliza Outbox. No configurar destinatarios o credenciales de terceros sin autorización.
 
-Validación: `php artisan test --compact`; pruebas MariaDB exclusivamente con `php tests/Support/run_mariadb_tests.php` y archivo privado `.env.testing.mariadb`. El runner exige base y usuario dedicados y comprueba la finalización de ocho pruebas. No ejecutar ambas suites a la vez. `npm run build`, `composer validate --strict` y `php vendor/bin/pint --dirty --test` completan los controles locales.
+Validación: `php artisan test --compact`; pruebas MariaDB exclusivamente con `php tests/Support/run_mariadb_tests.php` y archivo privado `.env.testing.mariadb`. El runner exige base y usuario dedicados y comprueba la finalización de nueve pruebas. No ejecutar ambas suites a la vez. `npm run build`, `composer validate --strict` y `php vendor/bin/pint --dirty --test` completan los controles locales.
 
-## Catálogo continuo
+## Política CSV implementada
+
+La política versión 2 consolida duplicados idénticos normalizados y conserva todas sus referencias y el CSV original. Conflictos rechazan el archivo completo. Texto vacío retiene texto válido previo con procedencia o deja contenido pendiente; stock cero sigue válido. No se modificaron umbrales económicos, bloqueo, revisión, caducidad, idempotencia, personalizaciones ni snapshots de cotización.
+
+summary JSON almacena warnings separados de errors, recibidos/únicos, duplicados, procedencia por SKU/modelo y pendientes de contenido. No se requirió migración adicional. Publicar exige descripción comercial válida y autorización products.manage; todos los modelos nuevos quedan sin publicar. Catálogo, fichas y sitemap comprueban contenido efectivo. Se conserva la carga progresiva existente.
+
+La copia real pasó SupplierSync::preview en SQLite :memory:: 819 recibidos, 818 SKU únicos, 362 modelos, un duplicado consolidado, 17 descripciones vacías, 85 variantes con stock cero, 18 advertencias y cero errores. TEC216–TEC220 quedarían pendientes de contenido. Los 819 registros ocupan 823 líneas físicas de datos (824 con cabecera), por cuatro descripciones multilínea; las referencias de staging son registros CSV. No se aplicaron datos reales ni se creó corrida en usbstock_dev. tests/Support/preview_supplier_isolated.php reproduce el ensayo desde un archivo privado, con guardas y sin opción apply.
+
+La administración distingue advertencias de rechazo y aprobación por anomalías; Telegram incorpora los nuevos conteos, probado mediante dobles. FTP/Scheduler/aplicación automática/Telegram siguen desactivados. El contrato FTP:21 /FTP/Existencias-ftp-precio.csv se verificó con doble de cURL sin conexiones externas. Preparación de la primera aplicación autorizada, administrador ID 1 revisado, hash y respaldo propuesto en ../xtras/docs/ENSAYO_REAL_PROVEEDOR_USBSTOCK.md.
+
+Validación final: **266 pruebas generales / 2,488 aserciones**, más **9 MariaDB / 864 aserciones**: **275 aprobadas / 3,352 aserciones**, cero fallos. Las nueve de MariaDB se omiten deliberadamente en la suite general y pasan en su runner dedicado. Composer validate --strict, auditoría PHP (cero advisories y paquetes abandonados), Pint, build Vite y git diff --check aprobados. La auditoría Composer pudo completarse sin escribir su caché de usuario.
+
+Revisión visual en Edge, escritorio 1440 y móvil 390: cuatro vistas (válida con advertencias, inválida, anomalías, producto pendiente), ocho combinaciones, sin errores JavaScript ni desbordamiento de página. Confirmación modal abre/cierra; archivos inválidos no ofrecen aplicar. HTML de Laravel sobre fixtures aisladas, con recursos locales; no prueba una conexión real al proveedor. Se ajustó la presentación de advertencias para lectura móvil.
+
+Esquema dev/test: 364 columnas, 170 entradas de índices y 26 relaciones foráneas, cero diferencias. Comparación de hashes de contenido de las **38 tablas de usbstock_dev: ninguna cambió**; siguen cero productos, variantes, cotizaciones y corridas, revisión 0. No se ejecutaron migraciones ni seeders en desarrollo. El catálogo continuo conservó 209 bloques sin duplicados para 5,000 modelos/20,000 variantes, cuatro SQL máximos por bloque y p95 HTTP interno 37.74 ms; el primer escenario frío de 100 modelos alcanzó 1,175.46 ms. Son mediciones locales, no latencia del hosting.
+
+## Historial: catálogo continuo
 
 /catalogo entrega 24 modelos en servidor y continúa con IntersectionObserver mediante GET /catalogo/bloques (120 peticiones/minuto). Cursor autenticado, ID descendente, sin OFFSET ni COUNT global. Filtros cancelan e invalidan peticiones anteriores; URL e historial sincronizados, enlace de continuación accesible sin JavaScript y restauración limitada al regresar, previa comprobación de revisión. Un cambio de inventario/publicación invalida el cursor y pide actualizar. No se devuelven costos ni variantes completas.
 

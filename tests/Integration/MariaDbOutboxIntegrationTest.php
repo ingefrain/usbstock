@@ -7,6 +7,7 @@ use App\Commerce\QuoteService;
 use App\Commerce\SupplierSync;
 use App\Models\CommercialSetting;
 use App\Models\OutboxMessage;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxDispatcher;
@@ -116,8 +117,8 @@ class MariaDbOutboxIntegrationTest extends TestCase
     {
         config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb')]);
         $sync = app(SupplierSync::class);
-        $first = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,100,Prueba aislada,10.00", 'fixture.csv', null);
-        $second = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,200,Prueba aislada,20.00", 'fixture.csv', null);
+        $first = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,100,,10.00\ntest1 -a,100,,10", 'fixture.csv', null);
+        $second = $sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nTEST1-A,200,,20.00\nTEST1-A,200,,20.00", 'fixture.csv', null);
         $gate = tempnam(sys_get_temp_dir(), 'commerce-gate-');
         unlink($gate);
         $workers = collect([$first, $second])->map(fn ($run) => new Process([PHP_BINARY, base_path('tests/Support/mariadb_outbox_worker.php'), (string) $run->id, $gate, 'commerce'], base_path(), ['APP_ENV' => 'testing', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:']));
@@ -133,7 +134,35 @@ class MariaDbOutboxIntegrationTest extends TestCase
         $this->assertDatabaseCount('products', 1);
         $this->assertDatabaseCount('product_variants', 1);
         $this->assertSame(1, (int) DB::table('commerce_locks')->value('catalog_revision'));
+        $completed = SupplierSyncRun::where('status', 'completed')->sole();
+        $this->assertSame(1, $completed->summary['duplicates_consolidated']);
+        $this->assertSame(['TEST1'], $completed->summary['pending_content']);
+        $this->assertSame([2, 3], $completed->summary['source_rows']['TEST1-A']);
         Storage::disk('local')->delete([$first->path, $second->path]);
+    }
+
+    public function test_csv_policy_preserves_json_provenance_retained_text_and_visibility_on_mariadb(): void
+    {
+        Storage::fake('local');
+        $sync = app(SupplierSync::class);
+        $header = "SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\n";
+        $sync->apply($sync->preview($header.'TEST1-A,100,Texto anterior,10', 'fixture.csv', null), null);
+        $product = Product::sole();
+        $product->update(['custom_description' => 'Personalización', 'is_published' => true]);
+        $run = $sync->preview($header."test1 -a,90,,11\nTEST1-A,090,,11.00\nTEST2-A,0,,10", 'fixture.csv', null);
+        $done = $sync->apply($run, null)->fresh();
+        $this->assertSame(3, $done->summary['received_count']);
+        $this->assertSame(2, $done->summary['unique_count']);
+        $this->assertSame('retained_variant', $done->summary['description_sources']['TEST1-A']['source']);
+        $this->assertSame(['TEST2'], $done->summary['pending_content']);
+        $this->assertSame('Texto anterior', $product->fresh()->supplier_description);
+        $this->assertSame('Personalización', $product->fresh()->description);
+        $this->assertSame(1, Product::published()->count());
+        Product::where('external_key', 'TEST2')->update(['is_published' => true, 'custom_description' => " \t\n"]);
+        $this->assertSame(1, Product::published()->count());
+        $same = $sync->apply($sync->preview($header."TEST1-A,90,,11\nTEST2-A,0,,10", 'fixture.csv', null), null);
+        $this->assertSame(2, $same->summary['unchanged']);
+        $this->assertSame(2, (int) DB::table('commerce_locks')->value('catalog_revision'));
     }
 
     public function test_commerce_json_totals_pdf_versions_and_foreign_keys_on_mariadb(): void

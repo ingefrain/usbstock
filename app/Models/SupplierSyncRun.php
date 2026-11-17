@@ -22,6 +22,18 @@ class SupplierSyncRun extends Model
         return $this->hasMany(SupplierSyncNotification::class);
     }
 
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'ready' => empty($this->summary['warnings']) ? 'Archivo válido sin advertencias; sin aplicar' : 'Archivo válido con advertencias; sin aplicar',
+            'review' => 'Pendiente de aprobación por anomalías',
+            'invalid' => 'Archivo inválido; aplicación bloqueada',
+            'completed' => empty($this->summary['warnings']) ? 'Aplicada' : 'Aplicada con advertencias',
+            'failed' => $this->phase === 'apply' ? 'Aplicación fallida' : 'Procesamiento fallido',
+            'dismissed' => 'Cerrada sin aplicar', default => 'En proceso',
+        };
+    }
+
     public function uniqueIds(): array
     {
         return ['uuid'];

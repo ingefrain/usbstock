@@ -23,6 +23,10 @@ final class SupplierCsv
             }
             $rows = [];
             $errors = [];
+            $warnings = [];
+            $sourceRows = [];
+            $duplicateSkus = [];
+            $received = $duplicates = $emptyDescriptions = $errorCount = 0;
             $number = 1;
             while (($cells = fgetcsv($stream, null, ',', '"', '')) !== false) {
                 $number++;
@@ -32,6 +36,7 @@ final class SupplierCsv
                 if ($number > config('commerce.sync.max_rows') + 1) {
                     throw ValidationException::withMessages(['file' => 'Se excedió el límite de registros.']);
                 }
+                $received++;
                 try {
                     if (count($cells) !== 4) {
                         throw new InvalidArgumentException('Se requieren cuatro columnas.');
@@ -41,30 +46,58 @@ final class SupplierCsv
                     if (! preg_match('/\A[A-Z0-9]{1,80}-[A-Z0-9-]{1,40}\z/', $sku) || strlen($sku) > 100) {
                         throw new InvalidArgumentException('SKU inválido.');
                     }
-                    if (isset($rows[$sku])) {
-                        throw new InvalidArgumentException('SKU duplicado después de normalizar.');
-                    }
+                    $sourceRows[$sku][] = $number;
                     if (! preg_match('/\A[0-9]{1,8}\z/', $stock)) {
                         throw new InvalidArgumentException('Existencia inválida.');
                     }
-                    if (trim($description) === '' || mb_strlen($description) > 4000) {
-                        throw new InvalidArgumentException('Descripción vacía o demasiado extensa.');
+                    if (mb_strlen($description) > 4000) {
+                        throw new InvalidArgumentException('Descripción demasiado extensa.');
                     }
                     [$model, $color] = explode('-', $sku, 2);
-                    $rows[$sku] = ['sku' => $sku, 'model' => $model, 'color_code' => $color, 'supplier_description' => $description, 'stock' => (int) $stock, 'supplier_price_minor' => Money::parse($price)];
+                    $row = ['sku' => $sku, 'model' => $model, 'color_code' => $color, 'supplier_description' => trim($description) === '' ? '' : $description, 'stock' => (int) $stock, 'supplier_price_minor' => Money::parse($price)];
+                    if ($row['supplier_description'] === '') {
+                        $emptyDescriptions++;
+                        $warnings[] = ['code' => 'empty_description', 'sku' => $sku, 'rows' => [$number], 'message' => 'La entrega no proporciona descripción. Se conserva texto válido previo o queda pendiente de contenido.'];
+                    }
+                    if (isset($rows[$sku])) {
+                        if ($rows[$sku] !== $row) {
+                            $errorCount++;
+                            if (count($errors) < 100) {
+                                $errors[] = ['row' => $number, 'rows' => $sourceRows[$sku], 'sku' => $sku, 'message' => 'SKU duplicado contradictorio después de normalizar.'];
+                            }
+                        } else {
+                            $duplicates++;
+                            $duplicateSkus[$sku] = true;
+                        }
+                    } else {
+                        $rows[$sku] = $row;
+                    }
                 } catch (InvalidArgumentException $error) {
-                    $errors[] = ['row' => $number, 'message' => $error->getMessage()];
-                    if (count($errors) >= 100) {
-                        break;
+                    $errorCount++;
+                    if (count($errors) < 100) {
+                        $errors[] = ['row' => $number, 'message' => $error->getMessage()];
                     }
                 }
             }
             if ($rows === [] && $errors === []) {
                 $errors[] = ['row' => 2, 'message' => 'No hay registros.'];
+                $errorCount++;
             }
+            foreach ($duplicateSkus as $sku => $_) {
+                $warnings[] = ['code' => 'identical_duplicate', 'sku' => $sku, 'rows' => $sourceRows[$sku], 'message' => 'Duplicado idéntico consolidado en una sola variante.'];
+            }
+            foreach ($errors as &$error) {
+                if (isset($error['sku'])) {
+                    $error['rows'] = $sourceRows[$error['sku']];
+                }
+            }
+            unset($error);
             ksort($rows);
 
-            return ['rows' => $rows, 'errors' => $errors, 'sha256' => hash('sha256', $bytes)];
+            return ['rows' => $rows, 'errors' => $errors, 'sha256' => hash('sha256', $bytes),
+                'warnings' => $warnings, 'source_rows' => $sourceRows, 'received_count' => $received,
+                'unique_count' => count($sourceRows), 'duplicates_consolidated' => $duplicates,
+                'empty_descriptions' => $emptyDescriptions, 'error_count' => $errorCount];
         } finally {
             fclose($stream);
         }
