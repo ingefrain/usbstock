@@ -74,7 +74,13 @@ final class PublicQuoteRequests
             // Never deduplicate clients by a similar name or overwrite an existing contact.
             $client = CommercialClient::create(collect($request->customer)->only(['name', 'email', 'phone', 'company', 'country'])->all());
             $data = ['revision' => 1, 'client_id' => $client->id, 'customer_name' => $request->customer['name'], 'customer_email' => $request->customer['email'], 'customer_phone' => $request->customer['phone'] ?? null, 'customer_company' => $request->customer['company'] ?? null, 'customer_country' => $request->customer['country'] ?? null, 'seller' => $seller?->name ?? $request->seller_name ?? '', 'seller_id' => $seller?->id, 'terms' => CommercialSetting::values()['terms'] ?? '', 'validity_days' => 30, 'tax_basis_points' => 1600, 'shipping' => '0'];
-            $data['items'] = array_map(fn ($i) => ['variant_id' => $i['variant_id'], 'quantity' => $i['quantity'], 'unit_price' => '0', 'printing_price' => '0', 'discount' => '0', 'printing' => $i['printing'] ?? null], $request->items);
+            $data['items'] = array_map(function ($i) {
+                $proposal = app(CommercialPricing::class)->proposal(ProductVariant::findOrFail($i['variant_id']), $i['quantity']);
+
+                return ['variant_id' => $i['variant_id'], 'quantity' => $i['quantity'], 'unit_price' => $proposal['price'] ?? '0',
+                    'pricing_action' => $proposal['available'] ? 'automatic' : 'keep', 'pricing_fingerprint' => $proposal['fingerprint'] ?? null,
+                    'printing_price' => '0', 'discount' => '0', 'printing' => $i['printing'] ?? null];
+            }, $request->items);
             $quote = app(QuoteService::class)->save($data, $actorId);
             $quote->update(['seller_original_name' => $request->seller_name]);
             // Preserve the customer's original selection, including descriptions before later imports.

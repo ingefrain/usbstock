@@ -1,0 +1,14 @@
+@extends('layouts.admin')
+@section('title', $scale->exists ? 'Editar escala comercial' : 'Crear escala comercial')
+@section('content')
+<div class="admin-form-surface"><p><a href="{{ route('admin.price-scales.index') }}">← Escalas comerciales</a></p><h1>{{ $scale->exists ? 'Editar escala comercial' : 'Crear escala comercial' }}</h1>
+@if($errors->any())<x-admin.alert variant="error"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></x-admin.alert>@endif
+<form class="panel" method="POST" action="{{ route('admin.price-scales.save', ['scale'=>$scale->exists ? $scale : null]) }}">@csrf<input type="hidden" name="revision" value="{{ $scale->revision }}"><div class="field-grid">
+<div class="field"><label for="name">Nombre</label><input id="name" name="name" value="{{ old('name',$scale->name) }}" maxlength="120" required><x-admin.field-error name="name"/></div>
+<div class="field"><label for="increment">Incremento sobre costo (%)</label><input id="increment" name="increment" inputmode="decimal" value="{{ old('increment',\App\Commerce\Money::decimal($scale->increment_basis_points)) }}" required aria-describedby="increment-help"><p class="field-hint" id="increment-help">Es un incremento sobre costo, no margen sobre venta. Máximo 1000%; dos decimales.</p><x-admin.field-error name="increment"/></div>
+<div class="field"><label for="lower">Importe mínimo MXN (incluido)</label><input id="lower" name="lower" inputmode="decimal" value="{{ old('lower',\App\Commerce\Money::decimal($scale->lower_minor)) }}" required aria-describedby="lower-help"><p class="field-hint" id="lower-help">Una banda consecutiva empieza un centavo después del máximo anterior.</p><x-admin.field-error name="lower"/></div>
+<div class="field"><label for="upper">Importe máximo MXN (incluido)</label><input id="upper" name="upper" inputmode="decimal" value="{{ old('upper',$scale->upper_minor === null ? '' : \App\Commerce\Money::decimal($scale->upper_minor)) }}" aria-describedby="upper-help"><p class="field-hint" id="upper-help">Vacío significa sin límite superior. No se permiten solapamientos activos.</p><x-admin.field-error name="upper"/></div>
+<div class="field"><label for="source_reference">Procedencia o autorización comercial</label><textarea id="source_reference" name="source_reference" minlength="10" maxlength="500" required>{{ old('source_reference',$scale->source_reference) }}</textarea><x-admin.field-error name="source_reference"/></div>
+<div class="field"><label for="is_active">Estado</label><select id="is_active" name="is_active"><option value="0" @selected(!old('is_active',$scale->is_active))>Inactiva</option><option value="1" @selected(old('is_active',$scale->is_active))>Activa</option></select><p class="field-hint">Solo se utiliza para propuestas nuevas. Guardar no recalcula precios anteriores.</p></div>
+</div><div class="form-actions"><button class="button button-primary">Guardar escala</button></div></form></div>
+@endsection

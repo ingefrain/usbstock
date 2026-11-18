@@ -146,4 +146,18 @@ class CorporateContactsTest extends TestCase
         $this->assertFalse(app(CorporateDirectory::class)->record(101, 'different-nonce'));
         $this->assertCount(1, Http::recorded(fn ($r) => isset($r['save'])));
     }
+
+    public function test_disabled_metrics_issue_no_tickets_and_cannot_trigger_a_network_read(): void
+    {
+        $this->enable();
+        config(['commerce.corporate_contacts.record_clicks' => false]);
+        $this->fake($this->rows());
+        $sellers = $this->getJson(route('shop.contacts'))->assertOk()->json('sellers');
+        $this->assertNotNull(collect($sellers)->firstWhere('id', 101)['url']);
+        $this->assertSame([null, null], array_column($sellers, 'ticket'));
+        Http::assertSentCount(1);
+        Cache::flush();
+        $this->assertFalse(app(CorporateDirectory::class)->record(101, 'disabled-test'));
+        Http::assertSentCount(1);
+    }
 }

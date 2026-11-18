@@ -472,6 +472,11 @@
                 }
 
                 button.setAttribute('aria-checked', String(result.is_active));
+                if (form.hasAttribute('data-versioned-toggle') && Number.isInteger(result.revision) && result.revision > 0) {
+                    const action = new URL(form.action);
+                    action.searchParams.set('revision', String(result.revision));
+                    form.action = action.href;
+                }
                 label.textContent = result.is_active ? form.dataset.activeLabel : form.dataset.inactiveLabel;
                 value.value = result.is_active ? '0' : '1';
                 if (note) {

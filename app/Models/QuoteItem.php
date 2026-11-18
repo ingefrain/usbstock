@@ -17,6 +17,6 @@ class QuoteItem extends Model
 
     protected function casts(): array
     {
-        return ['product' => 'array', 'quantity' => 'integer', 'unit_minor' => 'integer', 'printing_minor' => 'integer', 'discount_minor' => 'integer'];
+        return ['product' => 'array', 'pricing' => 'array', 'quantity' => 'integer', 'unit_minor' => 'integer', 'printing_minor' => 'integer', 'discount_minor' => 'integer'];
     }
 }

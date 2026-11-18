@@ -1,0 +1,351 @@
+{
+  "source": "usbstock2 read-only, 2026-11-18; codexv0 static audit",
+  "oracle": "MariaDB exact DECIMAL expressions over actual legacy rows and first inclusive matching band; not Laravel results",
+  "cost_policy": "quoted variant own cost approved by user; legacy model-minimum results retained for comparison",
+  "source_sha256": {
+    "includes/widgets.php": "a258b3c7445ab554d405f121f4410212ef6020701908e8875d1a77d2c78c9266",
+    "admin/modulos/cotizaciones/precotizacion-cfg.php": "af2d2d31dc01ead433660a8fafc54e316353ade82b505171a9799a1916ecefde",
+    "admin/modulos/cotizaciones/precotizacion-review.php": "9738107f2a86ea0747fe6c49322706fdb9663a9eaa67ab41e2ea5b5e7dbadfa6",
+    "templates/default/pages/productos-detalle.php": "78ef639ba3c0099eed9840537034d828ec86a1b2b2766beecdcf19377843ffee"
+  },
+  "bands": [
+    {
+      "id": 1,
+      "lower": 0,
+      "upper": 3000,
+      "increment": 35
+    },
+    {
+      "id": 2,
+      "lower": 3000,
+      "upper": 10000,
+      "increment": 35
+    },
+    {
+      "id": 3,
+      "lower": 10000,
+      "upper": 20000,
+      "increment": 29
+    },
+    {
+      "id": 4,
+      "lower": 20000,
+      "upper": 1000000000,
+      "increment": 22
+    }
+  ],
+  "cases": [
+    {
+      "sku": "TEC004-NE",
+      "quantity": 50,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 149,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 150,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 151,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 499,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 500,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "27.00",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "27.00"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 501,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "25.80",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "25.80"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 999,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "25.80",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "25.80"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 1000,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "25.80",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "25.80"
+    },
+    {
+      "sku": "TEC004-NE",
+      "quantity": 1001,
+      "variant_cost": "20.00",
+      "legacy_model_cost": "20.00",
+      "scale_id": 4,
+      "increment": 22,
+      "expected_variant_price": "24.40",
+      "legacy_scale_id": 4,
+      "legacy_increment": 22,
+      "expected_legacy_price": "24.40"
+    },
+    {
+      "sku": "USB017-AZ",
+      "quantity": 50,
+      "variant_cost": "95.00",
+      "legacy_model_cost": "95.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "128.25",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "128.25"
+    },
+    {
+      "sku": "USB017-AZ",
+      "quantity": 105,
+      "variant_cost": "95.00",
+      "legacy_model_cost": "95.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "128.25",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "128.25"
+    },
+    {
+      "sku": "USB017-AZ",
+      "quantity": 106,
+      "variant_cost": "95.00",
+      "legacy_model_cost": "95.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "122.55",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "122.55"
+    },
+    {
+      "sku": "USB017-AZ",
+      "quantity": 210,
+      "variant_cost": "95.00",
+      "legacy_model_cost": "95.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "122.55",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "122.55"
+    },
+    {
+      "sku": "USB017-AZ",
+      "quantity": 211,
+      "variant_cost": "95.00",
+      "legacy_model_cost": "95.00",
+      "scale_id": 4,
+      "increment": 22,
+      "expected_variant_price": "115.90",
+      "legacy_scale_id": 4,
+      "legacy_increment": 22,
+      "expected_legacy_price": "115.90"
+    },
+    {
+      "sku": "USB082-NT",
+      "quantity": 50,
+      "variant_cost": "70.00",
+      "legacy_model_cost": "54.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "94.50",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "72.90"
+    },
+    {
+      "sku": "USB082-NT",
+      "quantity": 143,
+      "variant_cost": "70.00",
+      "legacy_model_cost": "54.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "90.30",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "72.90"
+    },
+    {
+      "sku": "USB082-NT",
+      "quantity": 286,
+      "variant_cost": "70.00",
+      "legacy_model_cost": "54.00",
+      "scale_id": 4,
+      "increment": 22,
+      "expected_variant_price": "85.40",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "69.66"
+    },
+    {
+      "sku": "USB093-BL",
+      "quantity": 50,
+      "variant_cost": "64.00",
+      "legacy_model_cost": "48.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "86.40",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "64.80"
+    },
+    {
+      "sku": "USB093-BL",
+      "quantity": 143,
+      "variant_cost": "64.00",
+      "legacy_model_cost": "48.00",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "86.40",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "64.80"
+    },
+    {
+      "sku": "USB093-BL",
+      "quantity": 286,
+      "variant_cost": "64.00",
+      "legacy_model_cost": "48.00",
+      "scale_id": 3,
+      "increment": 29,
+      "expected_variant_price": "82.56",
+      "legacy_scale_id": 3,
+      "legacy_increment": 29,
+      "expected_legacy_price": "61.92"
+    },
+    {
+      "sku": "VAR008-BL",
+      "quantity": 50,
+      "variant_cost": "1.20",
+      "legacy_model_cost": "1.20",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "1.62",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "1.62"
+    },
+    {
+      "sku": "VAR008-BL",
+      "quantity": 2499,
+      "variant_cost": "1.20",
+      "legacy_model_cost": "1.20",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "1.62",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "1.62"
+    },
+    {
+      "sku": "VAR008-BL",
+      "quantity": 2500,
+      "variant_cost": "1.20",
+      "legacy_model_cost": "1.20",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "1.62",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "1.62"
+    },
+    {
+      "sku": "VAR008-BL",
+      "quantity": 2501,
+      "variant_cost": "1.20",
+      "legacy_model_cost": "1.20",
+      "scale_id": 2,
+      "increment": 35,
+      "expected_variant_price": "1.62",
+      "legacy_scale_id": 2,
+      "legacy_increment": 35,
+      "expected_legacy_price": "1.62"
+    },
+    {
+      "sku": "VAR009-BL",
+      "quantity": 50,
+      "variant_cost": "1.50",
+      "legacy_model_cost": "1.50",
+      "scale_id": 1,
+      "increment": 35,
+      "expected_variant_price": "2.03",
+      "legacy_scale_id": 1,
+      "legacy_increment": 35,
+      "expected_legacy_price": "2.03"
+    }
+  ]
+}

@@ -8,13 +8,13 @@ const frontPort = 4390;
 const phpPort = 4391;
 const origin = `http://127.0.0.1:${frontPort}`;
 const types = { '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff': 'font/woff', '.woff2': 'font/woff2' };
-async function startServer(logFile, reuseLaravel = false) {
+async function startServer(logFile, reuseLaravel = false, reviewRouter = 'tools/development-catalog/router.php') {
     const applicationPort = reuseLaravel ? 8000 : phpPort;
     for (const port of reuseLaravel ? [frontPort] : [frontPort, phpPort]) {
         try { await fetch(`http://127.0.0.1:${port}/up`, { signal: AbortSignal.timeout(1500) }); throw Error(`QA port ${port} is occupied.`); } catch (e) { if (e.message.includes('occupied')) throw e; }
     }
     const log = fs.openSync(logFile, 'a');
-    const php = reuseLaravel ? null : spawn('C:/xampp/php/php.exe', ['-S', `127.0.0.1:${phpPort}`, '-t', path.resolve('public'), path.resolve('tools/development-catalog/router.php')], { windowsHide: true, stdio: ['ignore', log, log] });
+    const php = reuseLaravel ? null : spawn('C:/xampp/php/php.exe', ['-S', `127.0.0.1:${phpPort}`, '-t', path.resolve('public'), path.resolve(reviewRouter)], { windowsHide: true, stdio: ['ignore', log, log] });
     const publicRoot = fs.realpathSync('public') + path.sep;
     const agent = new http.Agent({ keepAlive: false, maxSockets: 1 });
     const front = http.createServer((req, res) => {

@@ -3,13 +3,13 @@
 @section('content')
 @php
     $editable = $quote->status === 'draft' && \App\Commerce\CommerceAccess::allows(auth()->user(), 'quotes.manage');
-    $lines = old('items', $quote->items->map(fn ($i) => ['variant_id' => $i->product_variant_id, 'quantity' => $i->quantity, 'unit_price' => \App\Commerce\Money::decimal($i->unit_minor), 'printing_price' => \App\Commerce\Money::decimal($i->printing_minor), 'discount' => \App\Commerce\Money::decimal($i->discount_minor), 'printing' => $i->printing])->all());
+    $lines = old('items', $quote->items->map(fn ($i) => ['variant_id' => $i->product_variant_id, 'quantity' => $i->quantity, 'unit_price' => \App\Commerce\Money::decimal($i->unit_minor), 'printing_price' => \App\Commerce\Money::decimal($i->printing_minor), 'discount' => \App\Commerce\Money::decimal($i->discount_minor), 'printing' => $i->printing, 'pricing' => $i->pricing])->all());
     if (!$lines) $lines = [['quantity' => 50, 'unit_price' => '0.00', 'printing_price' => '0.00', 'discount' => '0.00']];
 @endphp
 <div class="admin-form-surface admin-form-surface-wide"><p><a href="{{ route('admin.quotes.index') }}">← Cotizaciones</a></p>
 @if($errors->any())<x-admin.alert variant="error"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></x-admin.alert>@endif
 @if($quote->sourceRequest)<section class="panel"><p class="eyebrow">Origen de la cotización</p><h2>Solicitud {{ substr($quote->sourceRequest->uuid,0,8) }}</h2><p>Vendedor informado: <strong class="literal-name">{{ $quote->seller_original_name ?? 'Sin vendedor asignado' }}</strong></p><p class="request-observations">{{ $quote->sourceRequest->message }}</p>@if(\App\Commerce\CommerceAccess::allows(auth()->user(),'quote_requests.manage'))<a href="{{ route('admin.quote-requests.index',['status'=>'converted']) }}#request-{{ $quote->sourceRequest->uuid }}">Consultar solicitud original</a>@endif</section>@endif
-<form class="panel" method="POST" action="{{ $quote->exists ? route('admin.quotes.update', $quote) : route('admin.quotes.store') }}" data-quote-editor>@csrf
+<form class="panel" method="POST" action="{{ $quote->exists ? route('admin.quotes.update', $quote) : route('admin.quotes.store') }}" data-quote-editor data-pricing-url="{{ route('admin.quotes.price-proposal') }}">@csrf
 @if($quote->exists) @method('PUT') @endif
 <input type="hidden" name="revision" value="{{ $quote->revision }}">
 <fieldset @disabled(!$editable)><legend>Cliente y condiciones</legend>
@@ -23,7 +23,7 @@
 <div class="field"><label for="validity_days">Vigencia en días</label><input id="validity_days" type="number" name="validity_days" min="1" max="365" value="{{ old('validity_days', $quote->validity_days) }}" required></div>
 <div class="field"><label for="tax_percent">IVA (%)</label><input id="tax_percent" type="number" step="0.01" name="tax_percent" min="0" max="100" value="{{ old('tax_percent', \App\Commerce\Money::decimal($quote->tax_basis_points)) }}" required></div>
 <div class="field"><label for="shipping">Envío MXN</label><input id="shipping" name="shipping" inputmode="decimal" value="{{ old('shipping', \App\Commerce\Money::decimal($quote->shipping_minor)) }}" required></div></div>
-<h2>Partidas</h2><p class="muted">Captura precios de venta sin IVA. El descuento es un importe por partida, aplicado después del IVA. Al guardar se recalculan los totales.</p>
+<h2>Partidas</h2><p class="muted">Captura precios de venta sin IVA. El descuento es un importe por partida, aplicado después del IVA. Al guardar se recalculan los totales. Las propuestas comerciales requieren aceptación explícita; cambiar cantidad o costo no sustituye un precio guardado.</p>
 <div data-quote-lines>
 @foreach($lines as $i=>$line)
 @include('admin.commerce.quote-line', ['index'=>$i, 'line'=>$line])

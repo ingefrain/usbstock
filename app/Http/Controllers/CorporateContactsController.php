@@ -17,7 +17,7 @@ final class CorporateContactsController
                 $request->session()->put('corporate_contacts_context', Str::random(40));
             }
             $sellers = collect($directory->sellers())->shuffle()->map(function ($seller) use ($request) {
-                $seller['ticket'] = $seller['url'] ? Crypt::encryptString(json_encode(['id' => $seller['id'], 'nonce' => (string) Str::uuid(), 'expires' => now()->addMinutes(5)->timestamp, 'session' => hash('sha256', $request->session()->get('corporate_contacts_context'))])) : null;
+                $seller['ticket'] = $seller['url'] && config('commerce.corporate_contacts.record_clicks') ? Crypt::encryptString(json_encode(['id' => $seller['id'], 'nonce' => (string) Str::uuid(), 'expires' => now()->addMinutes(5)->timestamp, 'session' => hash('sha256', $request->session()->get('corporate_contacts_context'))])) : null;
 
                 return $seller;
             })->values();

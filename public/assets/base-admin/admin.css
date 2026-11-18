@@ -51,6 +51,7 @@ code { color: #274c61; font-size: .88em; overflow-wrap: anywhere; }
 .topbar { position: sticky; z-index: 15; top: 0; display: flex; align-items: center; justify-content: space-between; min-height: 86px; padding: 14px clamp(18px, 3vw, 42px); border-bottom: 1px solid var(--line); background: rgb(255 255 255 / 95%); backdrop-filter: blur(10px); }
 .topbar-start { display: flex; align-items: center; gap: 14px; }
 .page-heading h1 { margin: 0; }
+[data-pricing-use][hidden] { display: none; }
 .eyebrow { margin-bottom: 5px; color: #567181; font-size: .7rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 .profile-menu { position: relative; }
 .profile-menu summary { display: flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; }

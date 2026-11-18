@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CommercialConfigController;
+use App\Http\Controllers\Admin\CommercialPriceScaleController;
 use App\Http\Controllers\Admin\CommercialSellerController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\QuoteController;
@@ -33,6 +34,13 @@ Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remo
 Route::post('solicitar-cotizacion', [PublicQuoteRequestController::class, 'submit'])->middleware('throttle:5,10,commerce-request')->name('shop.request.submit');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'account.active', 'session.current'])->group(function (): void {
+    Route::get('price-scales', [CommercialPriceScaleController::class, 'index'])->name('price-scales.index');
+    Route::get('price-scales/create', [CommercialPriceScaleController::class, 'form'])->name('price-scales.create');
+    Route::get('price-scales/{scale}/edit', [CommercialPriceScaleController::class, 'form'])->name('price-scales.edit');
+    Route::get('price-scales/{scale}/history', [CommercialPriceScaleController::class, 'history'])->name('price-scales.history');
+    Route::post('price-scales/{scale?}', [CommercialPriceScaleController::class, 'save'])->name('price-scales.save');
+    Route::patch('price-scales/{scale}/status', [CommercialPriceScaleController::class, 'status'])->name('price-scales.status');
+    Route::get('quote-price-proposal', [CommercialPriceScaleController::class, 'proposal'])->name('quotes.price-proposal');
     Route::get('pdf-designs', [QuoteDesignController::class, 'index'])->name('pdf-designs.index');
     Route::get('pdf-designs/{concept}', [QuoteDesignController::class, 'preview'])->name('pdf-designs.preview');
     Route::get('quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');

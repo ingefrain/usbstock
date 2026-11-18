@@ -2,8 +2,8 @@
 
 namespace App\Commerce;
 
-use App\Models\CommercialSetting;
 use App\Models\CommercialSeller;
+use App\Models\CommercialSetting;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
@@ -32,10 +32,11 @@ final class QuoteService
             'seller_id' => ['nullable', 'integer', Rule::exists('commercial_sellers', 'id')->where('is_active', true)],
             'terms' => 'nullable|string|max:6000', 'validity_days' => 'required|integer|min:1|max:365', 'tax_basis_points' => 'required|integer|min:0|max:10000',
             'shipping' => ['required', 'regex:/^\d{1,7}(\.\d{1,2})?$/'], 'items' => 'required|array|min:1|max:100',
-            'items.*.variant_id' => 'required|integer|distinct|exists:product_variants,id', 'items.*.quantity' => 'required|integer|min:1|max:1000000',
+            'items.*.variant_id' => 'required|integer|distinct|exists:product_variants,id', 'items.*.quantity' => 'required|integer|min:50|max:1000000',
             'items.*.unit_price' => ['required', 'regex:/^\d{1,7}(\.\d{1,2})?$/'],
             'items.*.printing_price' => ['required', 'regex:/^\d{1,7}(\.\d{1,2})?$/'],
             'items.*.discount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/'], 'items.*.printing' => 'nullable|string|max:500',
+            'items.*.pricing_action' => 'sometimes|in:keep,automatic', 'items.*.pricing_fingerprint' => 'nullable|string|size:64', 'items.*.pricing_reason' => 'nullable|string|max:500',
         ])->validate();
 
         return DB::transaction(function () use ($data, $quote, $actorId) {
@@ -49,9 +50,13 @@ final class QuoteService
             $lines = [];
             foreach ($data['items'] as $position => $line) {
                 $variant = ProductVariant::with('product')->findOrFail($line['variant_id']);
+                if (! $variant->provider_active || ! $variant->is_enabled || (int) $line['quantity'] > $variant->stock) {
+                    throw ValidationException::withMessages(['items' => $variant->sku.': revisa la disponibilidad y cantidad vigente.']);
+                }
+                $pricing = app(CommercialPricing::class)->linePricing($variant, $line, $previousProducts?->get($variant->id), $actorId);
                 $lines[] = ['position' => count($lines) + 1, 'product_variant_id' => $variant->id,
                     'product' => $previousProducts?->get($variant->id)?->product ?? ['sku' => $variant->sku, 'name' => $variant->product->name, 'description' => $variant->product->description, 'color' => $variant->color, 'capacity_gb' => $variant->product->capacity_gb],
-                    'quantity' => (int) $line['quantity'], 'unit_minor' => Money::parse($line['unit_price']), 'printing_minor' => Money::parse($line['printing_price']), 'discount_minor' => Money::parse($line['discount']), 'printing' => $line['printing'] ?? null];
+                    'quantity' => (int) $line['quantity'], 'unit_minor' => Money::parse($line['unit_price']), 'printing_minor' => Money::parse($line['printing_price']), 'discount_minor' => Money::parse($line['discount']), 'printing' => $line['printing'] ?? null, 'pricing' => $pricing];
             }
             $totals = $this->calculator->calculate($lines, (int) $data['tax_basis_points'], Money::parse($data['shipping']));
             $quote ??= new Quote(['created_by' => $actorId]);
@@ -62,6 +67,14 @@ final class QuoteService
             $quote->items()->delete();
             $quote->items()->createMany($lines);
             $this->audit->record('quote.saved', 'quote', $quote->uuid, after: ['revision' => $quote->revision, 'lines' => count($lines)], actorId: $actorId);
+            foreach ($lines as $line) {
+                $previous = $previousProducts?->get($line['product_variant_id']);
+                $after = collect($line)->only(['product_variant_id', 'quantity', 'unit_minor', 'printing_minor', 'discount_minor', 'pricing'])->all();
+                $before = $previous?->only(array_keys($after));
+                if ($before !== $after) {
+                    $this->audit->record('quote.pricing_saved', 'quote', $quote->uuid, before: $before, after: $after, actorId: $actorId);
+                }
+            }
             if ($previousSeller !== $quote->seller_id) {
                 $this->audit->record('quote.seller_assigned', 'quote', $quote->uuid, before: ['seller_id' => $previousSeller], after: ['seller_id' => $quote->seller_id], actorId: $actorId);
             }
@@ -94,7 +107,7 @@ final class QuoteService
                 if (blank($quote->terms)) {
                     throw ValidationException::withMessages(['terms' => 'Define las condiciones comerciales antes de emitir.']);
                 }
-                $lines = $quote->items()->get()->map(fn ($i) => $i->only(['product', 'quantity', 'unit_minor', 'printing_minor', 'discount_minor', 'printing']))->all();
+                $lines = $quote->items()->get()->map(fn ($i) => $i->only(['product', 'quantity', 'unit_minor', 'printing_minor', 'discount_minor', 'printing', 'pricing']))->all();
                 foreach ($lines as $line) {
                     if ($line['unit_minor'] === 0) {
                         throw ValidationException::withMessages(['items' => 'Completa los precios de venta antes de emitir.']);

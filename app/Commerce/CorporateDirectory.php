@@ -134,11 +134,11 @@ final class CorporateDirectory
 
     public function record(int $id, string $nonce): bool
     {
-        $seller = collect($this->sellers())->firstWhere('id', $id);
-        if (! $seller || ! $seller['available'] || ! $seller['url']) {
+        if (! config('commerce.corporate_contacts.record_clicks')) {
             return false;
         }
-        if (! config('commerce.corporate_contacts.record_clicks')) {
+        $seller = collect($this->sellers())->firstWhere('id', $id);
+        if (! $seller || ! $seller['available'] || ! $seller['url']) {
             return false;
         }
         if (! Cache::add('corporate-click:'.hash('sha256', $nonce), true, 600)) {

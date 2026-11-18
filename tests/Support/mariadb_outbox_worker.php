@@ -1,8 +1,10 @@
 <?php
 
+use App\Commerce\CommercialPricing;
 use App\Commerce\SupplierDownloader;
 use App\Commerce\SupplierPipeline;
 use App\Commerce\SupplierSync;
+use App\Models\CommercialPriceScale;
 use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Contracts\Console\Kernel;
@@ -44,7 +46,18 @@ while (! is_file($gate)) {
     usleep(10000);
 }
 
-if (($argv[3] ?? '') === 'pipeline') {
+if (($argv[3] ?? '') === 'pricing') {
+    try {
+        app(CommercialPricing::class)->save(['name' => 'Concurrent scale', 'lower' => '0', 'upper' => '3000', 'increment' => '36', 'is_active' => true,
+            'revision' => 1, 'source_reference' => 'Isolated concurrency test'], (int) $argv[4], CommercialPriceScale::findOrFail($messageId));
+        echo 'saved';
+    } catch (HttpException $exception) {
+        if ($exception->getStatusCode() !== 409) {
+            throw $exception;
+        }
+        echo 'conflict';
+    }
+} elseif (($argv[3] ?? '') === 'pipeline') {
     config(['filesystems.disks.local.root' => storage_path('framework/testing/commerce-mariadb'), 'commerce.telegram_enabled' => false, 'commerce.notify_email' => null, 'queue.default' => 'sync']);
     app()->instance(SupplierDownloader::class, new class extends SupplierDownloader
     {
