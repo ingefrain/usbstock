@@ -1169,3 +1169,25 @@
 .pdf-concept-mark.b3 { background:#222830; color:#fff; }
 .pdf-sample-links { display:flex; gap:12px; flex-wrap:wrap; margin:12px 0; font-size:11px; }
 @media(max-width:1100px) { .admin-body .pdf-lab-grid { grid-template-columns:1fr; } .admin-body .pdf-lab-card > p:not(.eyebrow) { min-height:0; } }
+
+/* Shared search rows keep the action aligned and separate from results. */
+.admin-body .admin-search-filters { display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px 20px; margin-bottom:24px; }
+.admin-body .admin-search-filters > .field { flex:1 1 220px; min-width:0; margin:0; }
+.admin-body .admin-search-filters > .button { flex:0 0 auto; min-height:43px; margin:0; }
+@media(max-width:600px) { .admin-body .admin-search-filters > .button { width:100%; } }
+
+/* Filter actions share control sizing, including the compact base buttons. */
+.admin-body :is(.filter-bar,.request-filters,.admin-search-filters) :is(input:not([type=checkbox]):not([type=radio]),select,.button) { min-height:43px; box-sizing:border-box; }
+.admin-body :is(.filter-bar,.request-filters,.admin-search-filters) .button { white-space:normal; }
+.admin-body .filter-actions { padding-bottom:0; }
+.admin-body .admin-search-filters > .form-actions { align-self:flex-end; margin:0; }
+@media(max-width:600px) {
+    .admin-body .admin-search-filters > :is(.button,.form-actions) { width:100%; }
+    .admin-body .admin-search-filters > .form-actions > .button { flex:1; }
+    .admin-body .filter-bar label { flex:0 1 auto; }
+}
+
+/* Single-line fields retain the same baseline across text, email and telephone. */
+.admin-body .field input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=hidden]),
+.admin-body .field select:not([multiple]),
+.admin-body form .button:not(.button-small) { min-height:43px; }
