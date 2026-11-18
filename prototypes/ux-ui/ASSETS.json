@@ -1,0 +1,72 @@
+{
+  "legacyRoot": "C:/xampp/htdocs/usbstock/codex",
+  "policy": "Original local assets copied unchanged for the authorized isolated design review.",
+  "assets": [
+    {
+      "file": "assets/355.jpg",
+      "source": "legacy/img/contenido/productos/355.jpg",
+      "sha256": "5fc59bdb5d5f14ae9302637106d0bf133020a9923534b67c18ed84ef6f4625e3",
+      "bytes": 18466
+    },
+    {
+      "file": "assets/373.jpg",
+      "source": "legacy/img/contenido/productos/373.jpg",
+      "sha256": "7a610bfa27a2d528fb93de7f3606646172d881a91a5f0a8b3f9118c4e8681a9a",
+      "bytes": 24500
+    },
+    {
+      "file": "assets/391.jpg",
+      "source": "legacy/img/contenido/productos/391.jpg",
+      "sha256": "d4ba110fea480a5a934869dc73a13a567fc7acb9e71e45b6848c2a2a3f7f9501",
+      "bytes": 23461
+    },
+    {
+      "file": "assets/427.jpg",
+      "source": "legacy/img/contenido/productos/427.jpg",
+      "sha256": "c4c7df531e6a28329a5978a6553be8e8460e40bf630aabc7d2f31f9dc18c769f",
+      "bytes": 26082
+    },
+    {
+      "file": "assets/445.jpg",
+      "source": "legacy/img/contenido/productos/445.jpg",
+      "sha256": "646e9efe31a7161efcfe1b968c129afa44724a3401219dc2fa8c900d4c9b9b30",
+      "bytes": 29896
+    },
+    {
+      "file": "assets/517.jpg",
+      "source": "legacy/img/contenido/productos/517.jpg",
+      "sha256": "afc272d77526fa788b28944917b82d2fe5a9b6656332cfb4666bd87d46be82d7",
+      "bytes": 23677
+    },
+    {
+      "file": "assets/535.jpg",
+      "source": "legacy/img/contenido/productos/535.jpg",
+      "sha256": "e47f1fbc68e688543ba045fbb271e11d2c4a180c5168101d45cf95386014fdea",
+      "bytes": 19754
+    },
+    {
+      "file": "assets/553.jpg",
+      "source": "legacy/img/contenido/productos/553.jpg",
+      "sha256": "ab97aac8b1d1073207ddebf04a70c20bf2a4595ef51111398fde2b865bffa8c2",
+      "bytes": 29557
+    },
+    {
+      "file": "assets/571.jpg",
+      "source": "legacy/img/contenido/productos/571.jpg",
+      "sha256": "e9658182730243db74f9adccd7b77dea829f552f3bda447105740e465687a725",
+      "bytes": 27584
+    },
+    {
+      "file": "assets/733.jpg",
+      "source": "legacy/img/contenido/productos/733.jpg",
+      "sha256": "845dccc4dd2d9d0aacbbf984f1acf34768252b6213116373dd29fb99d8607f97",
+      "bytes": 24966
+    },
+    {
+      "file": "assets/logo.webp",
+      "source": "public/brand/logo.webp",
+      "sha256": "192acf3ecdea2bfa81aba2641f3c0fa4dfe23765ac4e185d79a7be5ced36ffc6",
+      "bytes": 22550
+    }
+  ]
+}
