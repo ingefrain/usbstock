@@ -15,7 +15,7 @@
 </head>
 <body class="shop theme-b">
 <a class="skip-link" href="#main">Saltar al contenido</a>
-@if(config('commerce.review_mode'))<div class="review-notice" role="note">Revisión aislada · Nombres y fotografías de referencia histórica. Existencias y operaciones de prueba, sin oferta comercial vigente.</div>@endif
+<x-shop.development-notice />
 <header class="site-header">
     <div class="header-inner">
         <a class="brand" href="{{ route('shop.home') }}"><img src="{{ asset('brand/logo.webp') }}" width="220" height="50" alt="USB Stock"></a>
