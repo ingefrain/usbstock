@@ -9,18 +9,12 @@ try {
 $root = (Resolve-Path (Join-Path $project 'storage/app/private')).Path
 $run = [IO.Path]::GetFullPath((Join-Path $project $RunDirectory))
 if (-not $run.StartsWith($root + [IO.Path]::DirectorySeparatorChar) -or $run -notmatch 'development-import') { throw 'Backup destination must be private development-import storage.' }
+if ($run -ne [IO.Path]::GetFullPath((Join-Path $project 'storage/app/private/development-import/october-2026'))) { throw 'Use the fixed October evidence directory.' }
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMdd_HHmmss')
 $backup = Join-Path $run ('backup-' + $stamp)
 $null = New-Item -ItemType Directory -Path $backup
-# Remove broad inherited read access only from this NEW backup directory.
-# Preserve the existing named users, Codex accounts, Administrators and SYSTEM.
-$acl = Get-Acl -LiteralPath $backup
-$acl.SetAccessRuleProtection($true, $true)
-foreach ($rule in @($acl.Access)) {
-    $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
-    if ($sid -in @('S-1-1-0','S-1-5-11','S-1-5-32-545')) { $null = $acl.RemoveAccessRuleSpecific($rule) }
-}
-Set-Acl -LiteralPath $backup -AclObject $acl
+# Fail before writing a dump if Windows permissions cannot be restricted and verified.
+& (Join-Path $PSScriptRoot 'secure-evidence.ps1')
 $client = 'C:\MariaDB\11.4.13\bin\mariadb.exe'
 $dump = 'C:\MariaDB\11.4.13\bin\mariadb-dump.exe'
 $defaults = '--defaults-file=C:\Users\ing_e\.codex\mysql.ini'

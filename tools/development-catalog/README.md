@@ -43,6 +43,16 @@ SQLite en memoria para la suite general; MariaDB `usbstock_test` con cuenta dedi
 
 ## Evidencia y límites
 
-Todo el material de datos está en `storage/app/private/development-import/october-2026`, excluido de Git y con ACL restringida. Incluye backup/restauración, CSV, mapeos, informes, sesión temporal, capturas y PDF ficticios. No copiar privados a `public`.
+Todo el material de datos está en `storage/app/private/development-import/october-2026`, excluido de Git y fuera del directorio público. Incluye backup/restauración, CSV, mapeos, informes, capturas y PDF ficticios. No copiar privados a `public`. La sesión temporal se cerró y su archivo de acceso fue eliminado.
+
+**Permiso Windows pendiente:** la comprobación final encontró concesiones locales amplias (Authenticated Users/Users). Windows rechazó cambiarlas por falta de privilegios, incluso en la ejecución autorizada; `Set-Acl` solicitó SeSecurityPrivilege e `icacls` devolvió acceso denegado. No se cambiaron propietarios ni se ampliaron permisos. Desde PowerShell **como administrador**, ejecutar:
+
+```powershell
+Set-Location E:\proyectos\usbstock\site
+.\tools\development-catalog\secure-evidence.ps1
+.\tools\development-catalog\secure-evidence.ps1 -VerifyOnly
+```
+
+El script restringe solo esta carpeta de evidencias y sus backups, preserva las cuentas nominativas/SYSTEM/administradores, no modifica credenciales ni datos, y exige `verified=true`. El backup reproducible ahora se detiene antes de generar SQL si no consigue comprobar esos permisos. `permissions-verification.json` registra el estado observado; no se presume que esté resuelto.
 
 Los 361 modelos publicados son de referencia local; 354 tienen portada y 7 carecen de ella. La banda de desarrollo solo aparece en `local`; QA conserva su banda diferenciada. Taxonomía, capacidades, vigencia comercial de fotografías y aprobación de producción quedan pendientes. La fórmula `legacy_v1` y plantilla `usbstock-2-letter` no cambian; nuevas emisiones Letter vertical, históricos preservados. No hay FTP, Scheduler, Telegram, correo comercial, push ni despliegue en este procedimiento.
