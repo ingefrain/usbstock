@@ -19,7 +19,7 @@ final class QuoteDesignController
     {
         $this->access();
 
-        return response()->view('admin.commerce.pdf-designs', ['concepts' => QuoteDesigns::CONCEPTS])->header('Cache-Control', 'no-store, private');
+        return response()->view('admin.commerce.pdf-designs', ['concepts' => QuoteDesigns::CONCEPTS, 'laboratory' => QuoteDesigns::LAB_CONCEPTS])->header('Cache-Control', 'no-store, private');
     }
 
     public function preview(Request $request, string $concept, QuoteDesigns $designs)

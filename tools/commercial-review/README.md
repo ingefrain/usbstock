@@ -20,10 +20,10 @@ Revisa migraciones con `--pretend` y migra únicamente su archivo `storage/app/p
 
 ## Abrir la revisión
 
-Usar rutas absolutas con el servidor PHP en Windows:
+En Windows se recomienda el lanzador de QA: sirve los assets públicos con Node y envía las rutas de aplicación al servidor PHP integrado en 127.0.0.1:4389. Evita los resets intermitentes de conexiones estáticas observados con php -S; las operaciones siguen ejecutándose en Laravel real. Requiere libres ambos puertos 4388 y 4389.
 
 ```powershell
-& 'C:\xampp\php\php.exe' -S 127.0.0.1:4388 -t E:\proyectos\usbstock\site\public E:\proyectos\usbstock\site\tools\commercial-review\router.php
+& 'E:\software\node\node.exe' tools/commercial-review/server.cjs
 ```
 
 - Inicio: http://127.0.0.1:4388/
@@ -31,7 +31,7 @@ Usar rutas absolutas con el servidor PHP en Windows:
 - Solicitud: http://127.0.0.1:4388/solicitar-cotizacion (consultar rutas en `routes/commerce.php` si cambian).
 - Acceso administrativo: http://127.0.0.1:4388/admin/login; utilizar el archivo privado `access.json` sin copiarlo a documentación o Git.
 
-Cerrar con Ctrl+C al terminar. El router rechaza clientes no loopback. Los scripts de QA abren y cierran su propio servidor. No usar esta configuración para atender clientes ni para publicar el sitio.
+Cerrar con Ctrl+C al terminar. El frontend y el router rechazan clientes no loopback. Solo se sirven assets con extensión permitida y ruta real dentro de public; las rutas privadas se resuelven exclusivamente mediante Laravel. Los scripts de QA abren y cierran su propio servidor. No usar esta configuración para atender clientes ni para publicar el sitio.
 
 La banda superior identifica el catálogo como revisión: nombres/fotos de referencia histórica, stock y costos sintéticos. Las categorías con sufijo QA solo organizan la revisión. Los formularios persisten en `review.sqlite` y los PDF se guardan en el almacenamiento privado de la instancia.
 

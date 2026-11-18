@@ -1,0 +1,19 @@
+// Build a private, portable comparison from actual browser captures.
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve('storage/app/private/qa/visual');
+const names = { home: 'Inicio editorial', catalog: 'Catálogo continuo', product: 'Ficha de producto', request: 'Selección y solicitud', contact: 'Contacto', login: 'Acceso', dashboard: 'Dashboard', products: 'Productos', sync: 'Sincronización', requests: 'Solicitudes', quotes: 'Cotizaciones', clients: 'Clientes', sellers: 'Vendedores', documents: 'Documentos', reports: 'Reportes', settings: 'Configuración', imports: 'Importaciones', profile: 'Perfil', users: 'Usuarios', roles: 'Roles', catalogs: 'Catálogos', components: 'Componentes' };
+const sections = [];
+for (const width of [1440, 820, 390]) {
+    sections.push(`<section id="w${width}"><h2>${width} px</h2>`);
+    for (const [name, label] of Object.entries(names)) {
+        const before = `before-${name}-${width}.png`;
+        const after = `after-${name}-${width}.png`;
+        if (![before, after].every(file => fs.existsSync(path.join(root, file)))) continue;
+        sections.push(`<article><h3>${label}</h3><div class="pair"><figure><figcaption>Antes · ${width} px</figcaption><a href="${before}"><img loading="lazy" src="${before}" alt="${label} antes"></a></figure><figure><figcaption>Después · ${width} px</figcaption><a href="${after}"><img loading="lazy" src="${after}" alt="${label} después"></a></figure></div></article>`);
+    }
+    sections.push('</section>');
+}
+const detail = ['after-consecutive-clean-form', 'after-confirmation', 'after-button-states', 'after-dropzone-photo', 'after-home-no-js', 'after-dropzone-no-js', 'after-pdf-lab-1440', 'after-pdf-lab-820', 'after-pdf-lab-390'].filter(name => fs.existsSync(path.join(root, name + '.png'))).map(name => `<li><a href="${name}.png">${name.replace('after-', '').replaceAll('-', ' ')}</a></li>`).join('');
+fs.writeFileSync(path.join(root, 'index.html'), `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>USB Stock · Antes / Después</title><style>*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#1c2026;font:15px/1.6 system-ui}header,main{max-width:1540px;padding:32px;margin:auto}header p{max-width:850px}h1{font-size:44px;line-height:1.1;letter-spacing:-.045em}h2{font-size:32px;margin:40px 0 20px}h3{font-size:22px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}figure{margin:0;background:#fff;border:1px solid #dce0e5;border-radius:12px;overflow:hidden}figcaption{padding:12px 20px;font-weight:700}img{display:block;width:100%;height:auto}a{color:#a3102c}nav{display:flex;flex-wrap:wrap;gap:24px}article{margin-bottom:40px}details{padding:20px;background:white;border-radius:12px}a:focus-visible{outline:3px solid #ad1434;outline-offset:3px}@media(max-width:800px){.pair{grid-template-columns:1fr}header,main{padding:20px}h1{font-size:34px}}</style><header><p>USB STOCK / EVIDENCIA PRIVADA</p><h1>Una evolución visible.<br>La misma operación comercial.</h1><p>Capturas reales de Laravel en Edge, sobre la instancia QA aislada. Nombres/fotografías de referencia y operaciones ficticias. Las diferencias de contadores reflejan pruebas realizadas durante la revisión. Toca una imagen para verla en su resolución original.</p><nav><a href="#w1440">Escritorio 1440</a><a href="#w820">Tableta 820</a><a href="#w390">Móvil 390</a><a href="../designs/index.html">Laboratorio PDF B1/B2/B3</a></nav></header><main><details><summary>Estados, formularios y verificaciones</summary><ul>${detail}</ul><p>Informes locales: <a href="quality.json">movimiento y contraste</a> · <a href="final-browser.json">CLS final y laboratorio</a> · <a href="followup-extra.json">solicitudes consecutivas</a></p></details>${sections.join('')}</main></html>`);
+console.log('Galería privada: ' + path.join(root, 'index.html'));

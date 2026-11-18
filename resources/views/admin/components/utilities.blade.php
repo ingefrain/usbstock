@@ -3,6 +3,16 @@
 @section('usage', 'Controles y feedback reutilizables para interacciones administrativas. Los ejemplos se ejecutan en esta página.')
 
 @section('example')
+    <h3>Jerarquía de acciones</h3>
+    <div class="page-actions" data-button-specimens>
+        <button type="button" class="button button-primary">Primario</button>
+        <button type="button" class="button button-secondary">Secundario</button>
+        <button type="button" class="button button-tertiary">Terciario</button>
+        <button type="button" class="button button-danger">Destructivo</button>
+        <button type="button" class="button button-confirm">Confirmación</button>
+        <button type="button" class="button button-primary" disabled>Deshabilitado</button>
+        <button type="button" class="button button-primary is-submitting" aria-busy="true">Guardando</button>
+    </div>
     <h3>Toggle de estado</h3>
     <div class="field-grid">
         <div class="field"><strong>Activo</strong><x-admin.status-toggle :active="true" label="Estado del ejemplo activo" demo="success" /></div>

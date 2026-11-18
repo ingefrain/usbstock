@@ -1,7 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
-const {spawn}=require('node:child_process');
+const {startServer}=require('./server.cjs');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/ing_e/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const origin='http://127.0.0.1:4388';
 const output=path.resolve('storage/app/private/qa/commercial');
@@ -12,8 +12,7 @@ if(path.basename(reportName)!==reportName)throw Error('Report must be a filename
 const widths=(process.env.QA_WIDTHS||'1440,820,390').split(',').map(Number);
 assert(widths.every(w=>[1440,820,390].includes(w)));
 const save=()=>fs.writeFileSync(path.join(output,reportName),JSON.stringify(report,null,2));
-const log=fs.openSync(path.join(output,'browser-server.log'),'a');
-const server=spawn('C:/xampp/php/php.exe',['-S','127.0.0.1:4388','-t',path.resolve('public'),path.resolve('tools/commercial-review/router.php')],{windowsHide:true,stdio:['ignore',log,log]});
+let server;
 let browser;
 async function check(name,fn){try{await fn();report.checks.push({name,passed:true});console.log('PASS '+name);}catch(e){report.checks.push({name,passed:false,error:e.message.slice(0,500)});console.log('FAIL '+name+': '+e.message.slice(0,300));}save();}
 async function go(page,url){const r=await page.goto(origin+url,{waitUntil:'networkidle'});assert.equal(r.status(),200);assert((await page.title()).includes('USB Stock'));}
@@ -22,6 +21,7 @@ async function metrics(page){const m=await page.evaluate(()=>({overflow:document
 async function context(options){const ctx=await browser.newContext(options);await ctx.route('**/*',route=>{if(new URL(route.request().url()).origin===origin)return route.continue();report.externalRequests.push(route.request().url());return route.abort();});ctx.on('page',p=>{p.setDefaultTimeout(20000);p.setDefaultNavigationTimeout(60000);p.on('pageerror',e=>report.errors.push(e.message));});return ctx;}
 async function add(page,url,quantity){await go(page,url);await page.locator('[name=variant]:not(:disabled)').first().check();await page.locator('[name=quantity]').fill(String(quantity));await page.locator('[name=printing]').fill('Logotipo · prueba Edge');await page.getByRole('button',{name:'Agregar a mi solicitud'}).click();await page.waitForURL('**/solicitar-cotizacion');}
 (async()=>{try{
+ server=await startServer(path.join(output,'browser-server.log'));
  for(let i=0;i<30;i++){try{if((await fetch(origin+'/up')).ok)break;}catch{}if(i===29)throw Error('Laravel unavailable');await new Promise(r=>setTimeout(r,300));}
  browser=await chromium.launch({executablePath:process.env.EDGE_EXECUTABLE||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,timeout:60000});report.browser=browser.version();
  for(const width of widths){
@@ -66,4 +66,4 @@ async function add(page,url,quantity){await go(page,url);await page.locator('[na
   const nojs=await context({javaScriptEnabled:false,viewport:{width:390,height:844}});const p=await nojs.newPage();await go(p,'/catalogo');assert(await p.locator('details.filters').getAttribute('open')!==null);const href=await p.locator('[data-catalog-next]').getAttribute('href');const first=await p.locator('[data-product-id]').first().getAttribute('data-product-id');await p.goto(href,{waitUntil:'networkidle'});assert.equal(await p.locator('[data-product-id]').count(),24);assert.notEqual(await p.locator('[data-product-id]').first().getAttribute('data-product-id'),first);await shot(p,'catalog-no-js');await nojs.close();
  });
  await check('no external requests or browser errors',async()=>{assert.deepEqual(report.externalRequests,[]);assert.deepEqual(report.errors,[]);});
-} catch(e){report.checks.push({name:'harness',passed:false,error:e.message.slice(0,500)});console.log('FAIL harness '+e.message.slice(0,200));}finally{report.finished=new Date().toISOString();save();await browser?.close();server.kill();fs.closeSync(log);}console.log(JSON.stringify({checks:report.checks.length,failed:report.checks.filter(c=>!c.passed).length,screenshots:report.screenshots.length}));process.exitCode=report.checks.some(c=>!c.passed)?1:0;})();
+} catch(e){report.checks.push({name:'harness',passed:false,error:e.message.slice(0,500)});console.log('FAIL harness '+e.message.slice(0,200));}finally{report.finished=new Date().toISOString();save();await browser?.close();await server?.stop();}console.log(JSON.stringify({checks:report.checks.length,failed:report.checks.filter(c=>!c.passed).length,screenshots:report.screenshots.length}));process.exitCode=report.checks.some(c=>!c.passed)?1:0;})();

@@ -12,6 +12,9 @@ final class PublicQuoteRequestController
 {
     public function index(Request $request)
     {
+        if ($request->session()->has('quote_request_receipt')) {
+            return redirect()->route('shop.request.received');
+        }
         if (! $request->session()->has('quote_request_key')) {
             $request->session()->put('quote_request_key', (string) Str::uuid());
         }
@@ -30,6 +33,11 @@ final class PublicQuoteRequestController
         if ($data['quantity'] > $v->stock) {
             return back()->withErrors(['quantity' => 'La cantidad supera las existencias disponibles.'])->withInput();
         }
+        // A new selection after a receipt starts a new request; the previous receipt
+        // remains available until a valid product is actually selected.
+        if ($request->session()->has('quote_request_receipt')) {
+            $request->session()->forget(['commerce_cart', 'commerce_cart_printing', 'quote_request_key', 'quote_request_receipt', '_old_input']);
+        }
         $cart = $request->session()->get('commerce_cart', []);
         abort_if(count($cart) >= 50 && ! isset($cart[$v->id]), 422);
         $cart[$v->id] = (int) $data['quantity'];
@@ -42,7 +50,7 @@ final class PublicQuoteRequestController
         $request->session()->put('commerce_cart_printing', $printing);
         $request->session()->put('quote_request_key', (string) Str::uuid());
 
-        return redirect()->route('shop.request');
+        return redirect()->route('shop.request')->with('selection_notice', 'Tu selección está actualizada. Puedes seguir agregando productos.');
     }
 
     public function remove(Request $request, string $variant)
@@ -55,7 +63,7 @@ final class PublicQuoteRequestController
         $request->session()->put('commerce_cart', $cart);
         $request->session()->put('quote_request_key', (string) Str::uuid());
 
-        return back();
+        return back()->with('selection_notice', 'Quitamos el producto de tu selección.');
     }
 
     public function submit(Request $request, PublicQuoteRequests $service)

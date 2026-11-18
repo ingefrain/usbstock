@@ -1,14 +1,20 @@
 // Progressive enhancement only. Cart and requests remain server-owned.
-const filters = document.querySelector('.shop details.filters');
-if (filters && window.matchMedia('(max-width:600px)').matches) filters.open = false;
 const menu = document.querySelector('.shop .mobile-menu');
 const mobileNav = document.querySelector('.shop .mobile-nav');
 if (menu && mobileNav) {
+    menu.hidden = false;
     mobileNav.hidden = true;
     menu.addEventListener('click', () => {
         mobileNav.hidden = !mobileNav.hidden;
         menu.setAttribute('aria-expanded', String(!mobileNav.hidden));
         menu.setAttribute('aria-label', mobileNav.hidden ? 'Abrir navegación' : 'Cerrar navegación');
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || mobileNav.hidden) return;
+        mobileNav.hidden = true;
+        menu.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-label', 'Abrir navegación');
+        menu.focus();
     });
 }
 const sellerField = document.querySelector('[data-seller-field]');

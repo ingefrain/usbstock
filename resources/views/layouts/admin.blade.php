@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="{{ asset('assets/commerce-admin.css') }}?v={{ filemtime(public_path('assets/commerce-admin.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/usb-tokens.css') }}?v={{ filemtime(public_path('assets/usb-tokens.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/commerce-workspace.css') }}?v={{ filemtime(public_path('assets/commerce-workspace.css')) }}">
+    <link rel="preload" href="{{ asset('brand/fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="{{ asset('assets/usb-motion.css') }}?v={{ filemtime(public_path('assets/usb-motion.css')) }}">
 </head>
 <body class="admin-body">
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
@@ -27,23 +29,25 @@
                 <span><strong>{{ $branding->displayName() }}</strong><small>Administración</small></span>
             </a>
             <nav class="side-navigation" aria-label="Principal">
-                <a class="side-link" href="{{ route('shop.home') }}">Ver sitio público ↗</a>
-                @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<a class="side-link {{ request()->routeIs('admin.quote-requests.*') ? 'is-active' : '' }}" href="{{ route('admin.quote-requests.index') }}">Solicitudes públicas</a>@endif
+                <a class="side-link" href="{{ route('shop.home') }}"><x-admin.nav-icon name="external"/><span>Ver sitio público</span></a>
+                <p class="nav-section">Operación comercial</p>
+                @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<a class="side-link {{ request()->routeIs('admin.quote-requests.*') ? 'is-active' : '' }}" href="{{ route('admin.quote-requests.index') }}"><x-admin.nav-icon name="request"/><span>Solicitudes públicas</span></a>@endif
                 @foreach(['products.view' => ['admin.products.index', 'Productos'], 'supplier_sync.view' => ['admin.supplier-sync.index', 'Sincronizaciones'], 'quotes.view' => ['admin.quotes.index', 'Cotizaciones'], 'clients.manage' => ['admin.clients.index', 'Clientes'], 'sellers.manage' => ['admin.sellers.index', 'Vendedores'], 'commerce.configure' => ['admin.commerce.settings', 'Configuración comercial']] as $permission => [$commerceRoute, $commerceLabel])
-                    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), $permission))<a class="side-link {{ request()->routeIs(str_replace('.index', '.*', $commerceRoute)) ? 'is-active' : '' }}" href="{{ route($commerceRoute) }}">{{ $commerceLabel }}</a>@endif
+                    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), $permission))<a class="side-link {{ request()->routeIs(str_replace('.index', '.*', $commerceRoute)) ? 'is-active' : '' }}" href="{{ route($commerceRoute) }}"><x-admin.nav-icon :name="['products.view'=>'product','supplier_sync.view'=>'sync','quotes.view'=>'quote','clients.manage'=>'people','sellers.manage'=>'people','commerce.configure'=>'settings'][$permission]"/><span>{{ $commerceLabel }}</span></a>@endif
                 @endforeach
+                <p class="nav-section">Espacio de trabajo</p>
                 @if($navigationCan('dashboard.view'))
-                    <a class="side-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}" @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif>Resumen</a>
+                    <a class="side-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}" @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif><x-admin.nav-icon name="grid"/><span>Resumen</span></a>
                 @endif
                 @if($navigationImports || $navigationCan('users.view') || $navigationCan('roles.view') || $navigationCan('notifications.view') || $navigationCan('documents.view') || $navigationCan('system.audit.view') || auth()->user()?->can('viewAny', \App\Models\Catalog::class))
                     @php($settingsActive = request()->routeIs('admin.settings.*', 'admin.imports.*', 'admin.users.*', 'admin.roles.*', 'admin.system-audit.*', 'admin.system-status.*', 'admin.login-security.*', 'admin.permissions.*', 'admin.audit.*', 'admin.notifications.*', 'admin.documents.*', 'admin.catalogs.*'))
-                    <a class="side-link {{ $settingsActive ? 'is-active' : '' }}" href="{{ route('admin.settings.index') }}" @if($settingsActive) aria-current="page" @endif>Configuración</a>
+                    <a class="side-link {{ $settingsActive ? 'is-active' : '' }}" href="{{ route('admin.settings.index') }}" @if($settingsActive) aria-current="page" @endif><x-admin.nav-icon name="settings"/><span>Configuración</span></a>
                 @endif
                 @if($navigationCan('reports.view') && (!$impersonation->active() || $impersonation->actor()?->hasPermissionTo('reports.view')))
-                    <a class="side-link {{ request()->routeIs('admin.reports.*') ? 'is-active' : '' }}" href="{{ route('admin.reports.index') }}" @if(request()->routeIs('admin.reports.*')) aria-current="page" @endif>Reportes</a>
+                    <a class="side-link {{ request()->routeIs('admin.reports.*') ? 'is-active' : '' }}" href="{{ route('admin.reports.index') }}" @if(request()->routeIs('admin.reports.*')) aria-current="page" @endif><x-admin.nav-icon name="report"/><span>Reportes</span></a>
                 @endif
                 @if(app()->environment('local') && config('admin_components.enabled') && $navigationCan('system.audit.view'))
-                    <a class="side-link {{ request()->routeIs('admin.components.*') ? 'is-active' : '' }}" href="{{ route('admin.components.index') }}" @if(request()->routeIs('admin.components.*')) aria-current="page" @endif>Componentes</a>
+                    <a class="side-link {{ request()->routeIs('admin.components.*') ? 'is-active' : '' }}" href="{{ route('admin.components.index') }}" @if(request()->routeIs('admin.components.*')) aria-current="page" @endif><x-admin.nav-icon name="grid"/><span>Componentes</span></a>
                 @endif
             </nav>
         </aside>
@@ -105,6 +109,7 @@
     </div>
     <script src="{{ asset('assets/base-admin/admin.js') }}?v={{ filemtime(public_path('assets/base-admin/admin.js')) }}" defer></script>
     <script src="{{ asset('assets/base-admin/markdown-editor.js') }}?v={{ filemtime(public_path('assets/base-admin/markdown-editor.js')) }}" defer></script>
+    <script src="{{ asset('assets/usb-motion.js') }}?v={{ filemtime(public_path('assets/usb-motion.js')) }}" defer></script>
     @stack('admin-scripts')
     @vite('resources/js/app.js')
 </body>

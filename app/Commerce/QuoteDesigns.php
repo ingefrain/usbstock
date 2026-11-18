@@ -14,6 +14,10 @@ final class QuoteDesigns
 
     public const VERSION = 'review-2-letter';
 
+    public const LAB_CONCEPTS = ['b1' => 'Premium comercial', 'b2' => 'Catálogo visual', 'b3' => 'Ejecutivo moderno'];
+
+    public const LAB_VERSION = 'premium-review-1-letter';
+
     public function fixture(int $count): array
     {
         abort_unless(in_array($count, [1, 3, 10, 35], true), 422);
@@ -33,7 +37,8 @@ final class QuoteDesigns
 
     public function html(string $concept, array $snapshot, bool $pdf = false): string
     {
-        abort_unless(isset(self::CONCEPTS[$concept]), 404);
+        $concepts = self::CONCEPTS + self::LAB_CONCEPTS;
+        abort_unless(isset($concepts[$concept]), 404);
         $assets = $this->assets($snapshot);
         $sources = [];
         foreach ($assets as $name => $bytes) {
@@ -42,7 +47,9 @@ final class QuoteDesigns
 
         $fonts = $pdf ? [] : ['regular' => base64_encode(File::get(base_path('vendor/mpdf/mpdf/ttfonts/DejaVuSans.ttf'))), 'bold' => base64_encode(File::get(base_path('vendor/mpdf/mpdf/ttfonts/DejaVuSans-Bold.ttf')))];
 
-        return view('pdf.proposals.document', ['s' => $snapshot, 'concept' => $concept, 'name' => self::CONCEPTS[$concept], 'images' => $sources, 'pdf' => $pdf, 'fonts' => $fonts])->render();
+        $view = isset(self::LAB_CONCEPTS[$concept]) ? 'pdf.proposals.premium' : 'pdf.proposals.document';
+
+        return view($view, ['s' => $snapshot, 'concept' => $concept, 'name' => $concepts[$concept], 'images' => $sources, 'pdf' => $pdf, 'fonts' => $fonts])->render();
     }
 
     private function assets(array $snapshot): array
@@ -62,7 +69,7 @@ final class QuoteDesigns
 
     public function render(string $concept, array $snapshot): string
     {
-        abort_unless(isset(self::CONCEPTS[$concept]), 404);
+        abort_unless(isset((self::CONCEPTS + self::LAB_CONCEPTS)[$concept]), 404);
         $directory = storage_path('app/private/pdf-temp/'.Str::uuid());
         File::ensureDirectoryExists($directory, 0700);
         try {
@@ -70,7 +77,8 @@ final class QuoteDesigns
             $pdf->imageVars = $this->assets($snapshot);
             $pdf->SetTitle('USB Stock · Propuesta '.strtoupper($concept).' · '.$snapshot['folio']);
             $pdf->SetAuthor('USB Stock');
-            $pdf->SetHTMLFooter('<table width="100%" style="font-size:7pt;color:#687078;border-top:1px solid #ddd"><tr><td>USB Stock · '.e($snapshot['folio']).' · Diseño '.strtoupper($concept).' · '.self::VERSION.'</td><td align="right">Página {PAGENO} de {nbpg}</td></tr></table>');
+            $version = isset(self::LAB_CONCEPTS[$concept]) ? self::LAB_VERSION : self::VERSION;
+            $pdf->SetHTMLFooter('<table width="100%" style="font-size:7pt;color:#687078;border-top:1px solid #ddd"><tr><td>USB Stock · '.e($snapshot['folio']).' · Diseño '.strtoupper($concept).' · '.$version.'</td><td align="right">Página {PAGENO} de {nbpg}</td></tr></table>');
             $pdf->WriteHTML($this->html($concept, $snapshot, true));
 
             return $pdf->Output('', Destination::STRING_RETURN);

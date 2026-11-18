@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Commerce\PublicQuoteRequests;
 use App\Commerce\QuoteCalculator;
 use App\Commerce\QuoteService;
 use App\Commerce\SellerPreference;
@@ -66,7 +65,7 @@ class CommercialSellerFlowTest extends TestCase
         $this->assertStringNotContainsString('Josè', $response->getCookie(SellerPreference::COOKIE, false)->getValue());
         $this->post(route('shop.request.submit'), $data)->assertRedirect();
         $this->assertDatabaseCount('quote_requests', 1);
-        $this->get(route('shop.request.received'))->assertOk()->assertSee(substr($request->uuid, 0, 8));
+        $this->get(route('shop.request.received'))->assertOk()->assertSee($request->uuid);
         $this->assertDatabaseCount('outbox_messages', 0);
     }
 
@@ -98,6 +97,37 @@ class CommercialSellerFlowTest extends TestCase
         $this->assertEqualsWithDelta(now()->addDays(7)->timestamp, $cookie->getExpiresTime(), 2);
     }
 
+    public function test_a_valid_new_selection_starts_a_clean_request_after_receipt(): void
+    {
+        $first = $this->selection();
+        $this->post(route('shop.request.submit'), $first)->assertRedirect(route('shop.request.received'));
+        $original = QuoteRequest::sole()->toArray();
+        $this->get(route('shop.request'))->assertRedirect(route('shop.request.received'));
+        // Retrying the first submission remains idempotent until a new selection.
+        $this->post(route('shop.request.submit'), $first)->assertRedirect();
+        $this->assertDatabaseCount('quote_requests', 1);
+        $variant = ProductVariant::orderBy('id')->first();
+        $this->post(route('shop.cart.add'), ['variant' => $variant->uuid, 'quantity' => 999999])->assertSessionHasErrors('quantity');
+        $this->assertNotNull(session('quote_request_receipt'));
+        $this->post(route('shop.cart.add'), ['variant' => $variant->uuid, 'quantity' => 60])->assertRedirect(route('shop.request'));
+        $this->assertNull(session('quote_request_receipt'));
+        $this->assertSame([$variant->id => 60], session('commerce_cart'));
+        $this->assertSame([], session('commerce_cart_printing'));
+        $this->get(route('shop.request'))->assertOk()->assertDontSee('value="Cliente de prueba"', false);
+        $this->post(route('shop.request.submit'), $first)->assertStatus(419);
+        $second = ['name' => 'Segunda persona', 'email' => 'second@example.test', 'phone' => '5550000000', 'has_seller' => 0, 'request_key' => session('quote_request_key')];
+        $this->post(route('shop.request.submit'), $second)->assertRedirect(route('shop.request.received'));
+        $latest = QuoteRequest::latest('id')->first();
+        $this->assertSame('Segunda persona', $latest->customer['name']);
+        $this->assertNull($latest->message);
+        $this->assertNull($latest->seller_name);
+        $this->assertCount(1, $latest->items);
+        $this->assertSame(60, $latest->items[0]['quantity']);
+        $this->assertEmpty($latest->items[0]['printing']);
+        $this->assertSame($original, QuoteRequest::find($original['id'])->toArray());
+        $this->assertDatabaseCount('outbox_messages', 0);
+    }
+
     public function test_costs_association_conversion_revision_snapshot_and_letter_pdf_preserve_origin(): void
     {
         $data = $this->selection();
@@ -123,7 +153,7 @@ class CommercialSellerFlowTest extends TestCase
         $this->get(route('admin.quote-requests.index', ['q' => 'Josè', 'status' => 'converted']))->assertOk()->assertSee('Continuar cotización');
         $this->get(route('admin.quotes.show', $quote))->assertOk()->assertSee('Solicitud '.substr($request->uuid, 0, 8));
         CommercialSetting::create(['id' => 1, 'data' => ['issuer_name' => 'Emisor de prueba', 'issuer_contact' => 'prueba@example.test']]);
-        $input = ['revision' => $quote->revision, 'customer_name' => $data['name'], 'customer_email' => $data['email'], 'customer_country' => 'México', 'seller_id' => $seller->id, 'terms' => 'Condiciones de prueba', 'validity_days' => 30, 'tax_percent' => '16', 'shipping' => '50', 'items' => $quote->items->map(fn($i) => ['variant_id' => $i->product_variant_id, 'quantity' => $i->quantity, 'unit_price' => '20', 'printing_price' => '2', 'discount' => '0', 'printing' => $i->printing])->all()];
+        $input = ['revision' => $quote->revision, 'customer_name' => $data['name'], 'customer_email' => $data['email'], 'customer_country' => 'México', 'seller_id' => $seller->id, 'terms' => 'Condiciones de prueba', 'validity_days' => 30, 'tax_percent' => '16', 'shipping' => '50', 'items' => $quote->items->map(fn ($i) => ['variant_id' => $i->product_variant_id, 'quantity' => $i->quantity, 'unit_price' => '20', 'printing_price' => '2', 'discount' => '0', 'printing' => $i->printing])->all()];
         Product::query()->update(['supplier_description' => 'Descripción posterior']);
         $service = app(QuoteService::class);
         $quote = $service->save($input, auth()->id(), $quote);
@@ -135,7 +165,7 @@ class CommercialSellerFlowTest extends TestCase
         $this->assertSame('Descripción histórica', $version->snapshot['items'][0]['product']['description']);
         $reader = new Mpdf(['tempDir' => storage_path('framework/testing/mpdf')]);
         $pages = $reader->setSourceFile(Storage::disk('local')->path($version->path));
-        for ($page=1; $page <= $pages; $page++) {
+        for ($page = 1; $page <= $pages; $page++) {
             $size = $reader->getTemplateSize($reader->importPage($page));
             $this->assertEqualsWithDelta(215.9, $size['width'], .02);
             $this->assertEqualsWithDelta(279.4, $size['height'], .02);

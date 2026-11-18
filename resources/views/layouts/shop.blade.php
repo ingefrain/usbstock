@@ -7,7 +7,10 @@
     <meta name="robots" content="{{ app()->environment('production') && !request()->routeIs('shop.request*') && !array_intersect(['q','category','capacity','available','page','cursor'], array_keys(request()->query())) ? 'index, follow' : 'noindex, follow' }}">
     <link rel="canonical" href="{{ url()->current() }}"><meta property="og:title" content="@yield('title', 'Memorias USB para tu marca') · USB Stock"><meta property="og:type" content="website"><meta property="og:image" content="{{ asset('brand/catalog-hero.jpg') }}">
     <link rel="stylesheet" href="{{ asset('assets/usb-tokens.css') }}?v={{ filemtime(public_path('assets/usb-tokens.css')) }}">
+    <link rel="preload" href="{{ asset('brand/fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
     @vite(['resources/css/app.css','resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('assets/usb-motion.css') }}?v={{ filemtime(public_path('assets/usb-motion.css')) }}">
+    <script src="{{ asset('assets/usb-motion.js') }}?v={{ filemtime(public_path('assets/usb-motion.js')) }}" defer></script>
     @stack('shop-head')
 </head>
 <body class="shop theme-b">
@@ -17,8 +20,8 @@
     <div class="header-inner">
         <a class="brand" href="{{ route('shop.home') }}"><img src="{{ asset('brand/logo.webp') }}" width="220" height="50" alt="USB Stock"></a>
         <nav class="desktop-nav" aria-label="Principal"><a href="{{ route('shop.catalog') }}" @if(request()->routeIs('shop.catalog','shop.category','shop.product')) aria-current="page" @endif>Catálogo</a><a href="{{ route('shop.home') }}#como-cotizar">Cómo cotizar</a><a href="{{ route('shop.info') }}">Contacto</a></nav>
-        <a class="quote-nav" href="{{ route('shop.request') }}"><x-shop.icon name="bag"/><span>Mi cotización</span><b>{{ count(session('commerce_cart', [])) }}</b></a>
-        <button class="mobile-menu" aria-label="Abrir navegación" aria-controls="mobile-nav" aria-expanded="false"><x-shop.icon name="menu"/></button>
+        <a class="quote-nav" href="{{ route('shop.request') }}"><x-shop.icon name="bag"/><span>Mi cotización</span><b>{{ session()->has('quote_request_receipt') ? 0 : count(session('commerce_cart', [])) }}</b></a>
+        <button class="mobile-menu" aria-label="Abrir navegación" aria-controls="mobile-nav" aria-expanded="false" hidden><x-shop.icon name="menu"/></button>
     </div>
     <nav id="mobile-nav" class="mobile-nav" aria-label="Navegación móvil"><a href="{{ route('shop.catalog') }}">Catálogo</a><a href="{{ route('shop.home') }}#como-cotizar">Cómo cotizar</a><a href="{{ route('shop.info') }}">Contacto</a></nav>
 </header>

@@ -62,6 +62,7 @@ class QuoteDesignsTest extends TestCase
         $this->get(route('admin.pdf-designs.index'))->assertRedirect();
         $this->actingAsAdmin()->get(route('admin.pdf-designs.index'))->assertOk()->assertSee('Premium corporativo');
         $this->get(route('admin.pdf-designs.preview', 'a'))->assertOk()->assertSee('DATOS FICTICIOS')->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+        $this->get(route('admin.pdf-designs.preview', 'b1'))->assertOk()->assertSee('Premium comercial')->assertHeader('X-Robots-Tag', 'noindex, nofollow');
         $this->get(route('admin.pdf-designs.preview', ['concept' => 'a', 'items' => 999]))->assertSessionHasErrors('items');
         $this->get(route('admin.pdf-designs.preview', 'unknown'))->assertNotFound();
         $this->actingAsAdmin($this->userWithRole('operator'))->get(route('admin.pdf-designs.index'))->assertForbidden();
@@ -69,6 +70,7 @@ class QuoteDesignsTest extends TestCase
         $this->app->instance('env', 'production');
         $this->get(route('admin.pdf-designs.index'))->assertNotFound();
         $this->get(route('admin.pdf-designs.preview', 'a'))->assertNotFound();
+        $this->get(route('admin.pdf-designs.preview', 'b1'))->assertNotFound();
     }
 
     public function test_proposal_escapes_untrusted_content_without_changing_emission_template(): void

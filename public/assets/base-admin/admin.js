@@ -53,10 +53,21 @@
         button.addEventListener('click', () => openModal(document.getElementById(button.dataset.modalOpen), button));
     });
     document.querySelectorAll('[data-profile-modal]').forEach(dialog => {
-        dialog.querySelectorAll('[data-modal-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+        const dismiss = () => {
+            if (!dialog.open || dialog.dataset.closing) return;
+            if (!dialog.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { dialog.close(); return; }
+            dialog.dataset.closing = 'true';
+            dialog.getAnimations().forEach(animation => animation.cancel());
+            dialog.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px)' }], { duration: 140, easing: 'ease-out' }).finished.catch(() => {}).finally(() => {
+                delete dialog.dataset.closing;
+                if (dialog.open) dialog.close();
+            });
+        };
+        dialog.querySelectorAll('[data-modal-close]').forEach(button => button.addEventListener('click', dismiss));
         dialog.addEventListener('click', event => {
-            if (event.target === dialog) dialog.close();
+            if (event.target === dialog) dismiss();
         });
+        dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
         dialog.addEventListener('close', () => {
             if (dialog._focusReturn?.isConnected) dialog._focusReturn.focus({ preventScroll: true });
             dialog._focusReturn = null;
@@ -282,14 +293,7 @@
         });
         window.addEventListener('pagehide', releasePreview, { once: true });
 
-        field.closest('form')?.addEventListener('submit', () => {
-            const button = field.closest('form').querySelector('button[type="submit"]');
-            if (button) {
-                button.disabled = true;
-                button.dataset.originalText = button.textContent;
-                button.textContent = 'Guardando…';
-            }
-        }, { once: true });
+        // Shared USB motion reports submission without disabling serialized controls.
     });
 
     document.querySelectorAll('[data-password-policy]').forEach(form => {

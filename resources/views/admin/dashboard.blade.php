@@ -1,20 +1,12 @@
 @extends('layouts.admin')
-
 @section('title', 'Resumen')
-
 @section('content')
-    <div class="page-intro">
-        <p class="muted">Solicitudes, cotizaciones y catálogo en un solo lugar.</p>
-    </div>
-    <section class="metric-grid" aria-label="Operación comercial">
-        @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<article class="metric-card"><span>Solicitudes por atender</span><strong>{{ \App\Models\QuoteRequest::whereIn('status',['received','review'])->count() }}</strong><a href="{{ route('admin.quote-requests.index') }}">Atender solicitudes</a></article>@endif
-        @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quotes.view'))<article class="metric-card"><span>Cotizaciones en borrador</span><strong>{{ \App\Models\Quote::where('status','draft')->count() }}</strong><a href="{{ route('admin.quotes.index') }}">Abrir cotizaciones</a></article>@endif
-        @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'products.view'))<article class="metric-card"><span>Productos publicados</span><strong>{{ \App\Models\Product::published()->count() }}</strong><a href="{{ route('admin.products.index') }}">Administrar catálogo</a></article>@endif
-        @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'supplier_sync.view'))<article class="metric-card"><span>Proveedor · 00:00 Guadalajara</span><strong>{{ \App\Models\SupplierSyncRun::where('status','review')->count() }}</strong><small>Revisiones pendientes · {{ config('commerce.sync.enabled') ? 'Scheduler habilitado' : 'Scheduler deshabilitado' }}</small><a href="{{ route('admin.supplier-sync.index') }}">Ejecuciones y Telegram</a></article>@endif
-    </section>
-    <section class="metric-grid" aria-label="Resumen administrativo">
-        <article class="metric-card"><span>Usuarios activos</span><strong>{{ number_format($activeUsers) }}</strong><small>Con acceso vigente</small></article>
-        <article class="metric-card"><span>Usuarios inactivos</span><strong>{{ number_format($inactiveUsers) }}</strong><small>Sin acceso al panel</small></article>
-        <article class="metric-card"><span>Roles activos</span><strong>{{ number_format($activeRoles) }}</strong><small>Disponibles para asignación</small></article>
-    </section>
+<div class="dashboard-intro"><div><p class="eyebrow">Tu espacio de trabajo</p><h2>Cada proyecto empieza aquí.</h2><p>Solicitudes, cotizaciones y catálogo. Una vista clara de tu operación.</p></div>@if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<a class="button button-primary" href="{{ route('admin.quote-requests.index') }}">Atender solicitudes <x-shop.icon/></a>@endif</div>
+<section class="metric-grid commercial-metrics" aria-label="Operación comercial">
+    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quote_requests.manage'))<article class="metric-card"><span>Solicitudes por atender</span><strong>{{ \App\Models\QuoteRequest::whereIn('status',['received','review'])->count() }}</strong><a href="{{ route('admin.quote-requests.index') }}">Ver solicitudes ↗</a></article>@endif
+    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'quotes.view'))<article class="metric-card"><span>Cotizaciones en borrador</span><strong>{{ \App\Models\Quote::where('status','draft')->count() }}</strong><a href="{{ route('admin.quotes.index') }}">Continuar cotizaciones ↗</a></article>@endif
+    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'products.view'))<article class="metric-card"><span>Productos publicados</span><strong>{{ \App\Models\Product::published()->count() }}</strong><a href="{{ route('admin.products.index') }}">Administrar catálogo ↗</a></article>@endif
+    @if(\App\Commerce\CommerceAccess::allows(auth()->user(), 'supplier_sync.view'))<article class="metric-card"><span>Revisiones de proveedor</span><strong>{{ \App\Models\SupplierSyncRun::where('status','review')->count() }}</strong><small>{{ config('commerce.sync.enabled') ? 'Scheduler habilitado' : 'Scheduler deshabilitado' }}</small><a href="{{ route('admin.supplier-sync.index') }}">Revisar ejecuciones ↗</a></article>@endif
+</section>
+<div class="dashboard-workflow"><section class="panel"><p class="eyebrow">Del catálogo a la cotización</p><h2>Un proceso conectado.</h2><ol class="workflow-steps"><li><span>01</span><div><strong>Recibe la solicitud</strong><p>Consulta productos, contacto, observaciones y vendedor informado.</p></div></li><li><span>02</span><div><strong>Prepara la propuesta</strong><p>Confirma al vendedor y completa precios y condiciones en costos.</p></div></li><li><span>03</span><div><strong>Conserva cada versión</strong><p>Emite el PDF y consulta su historia al abrir una nueva revisión.</p></div></li></ol></section><section class="panel"><p class="eyebrow">Administración</p><h2>Acceso y equipo</h2><div class="admin-summary"><div><span>Usuarios activos</span><strong>{{ number_format($activeUsers) }}</strong></div><div><span>Usuarios inactivos</span><strong>{{ number_format($inactiveUsers) }}</strong></div><div><span>Roles activos</span><strong>{{ number_format($activeRoles) }}</strong></div></div><p class="dashboard-note">Las acciones disponibles dependen de los permisos de tu cuenta.</p></section></div>
 @endsection
