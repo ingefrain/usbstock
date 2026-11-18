@@ -23,6 +23,81 @@ class CommercialPricingTest extends TestCase
 {
     use InteractsWithBaseAdmin, RefreshDatabase;
 
+    public function test_old_zero_draft_shows_all_proposals_on_load_without_writing_prices(): void
+    {
+        $this->prepare();
+        $data = $this->data(false);
+        $data['items'][0]['unit_price'] = '0';
+        $quote = app(QuoteService::class)->save($data, auth()->id());
+        $quote->items()->update(['pricing' => null]);
+        $before = AdminAuditEvent::count();
+        $this->get(route('admin.quotes.show', $quote))->assertOk()
+            ->assertViewHas('proposals', fn ($p) => $p[0]['price'] === '94.50' && $p[0]['context']['cost_minor'] === 7000)
+            ->assertSee('Aplicar propuestas a partidas en cero')->assertSee('Venta unitaria guardada')->assertSee('Diferencia contra guardado');
+        $this->assertSame(0, $quote->fresh()->items->sole()->unit_minor);
+        $this->assertNull($quote->fresh()->items->sole()->pricing);
+        $this->assertSame(1, $quote->fresh()->revision);
+        $this->assertSame($before, AdminAuditEvent::count());
+    }
+
+    public function test_batch_application_preserves_other_manual_prices_and_records_provenance(): void
+    {
+        $this->prepare();
+        $data = $this->data(false);
+        $manual = $data['items'][0];
+        $manual['variant_id'] = ProductVariant::where('sku', 'MODEL-A')->sole()->id;
+        $data['items'][0]['unit_price'] = '0';
+        $data['items'][] = $manual;
+        $quote = app(QuoteService::class)->save($data, auth()->id());
+        $manualBefore = $quote->items->last()->pricing;
+        $proposal = app(CommercialPricing::class)->proposal($this->variant(), 50);
+        $data['items'][0] = array_replace($data['items'][0], ['unit_price' => $proposal['price'], 'pricing_action' => 'automatic', 'pricing_fingerprint' => $proposal['fingerprint']]);
+        $this->put(route('admin.quotes.update', $quote), $data)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame([9450, 9900], $quote->fresh()->items->pluck('unit_minor')->all());
+        $this->assertSame($manualBefore, $quote->fresh()->items->last()->pricing);
+        $this->assertSame('automatic', $quote->fresh()->items->first()->pricing['mode']);
+        $this->assertDatabaseHas('admin_audit_events', ['action' => 'quote.pricing_saved', 'entity_id' => $quote->uuid, 'actor_id' => auth()->id()]);
+        $this->put(route('admin.quotes.update', $quote), $data)->assertStatus(409);
+        $this->assertSame(2, $quote->fresh()->revision);
+    }
+
+    public function test_one_obsolete_proposal_rolls_back_the_entire_multi_line_application(): void
+    {
+        $this->prepare();
+        $data = $this->data(false);
+        $data['items'][0]['unit_price'] = '0';
+        $data['items'][] = array_replace($data['items'][0], ['variant_id' => ProductVariant::where('sku', 'MODEL-A')->sole()->id]);
+        $quote = app(QuoteService::class)->save($data, auth()->id());
+        foreach ($data['items'] as &$line) {
+            $proposal = app(CommercialPricing::class)->proposal(ProductVariant::findOrFail($line['variant_id']), $line['quantity']);
+            $line = array_replace($line, ['unit_price' => $proposal['price'], 'pricing_action' => 'automatic', 'pricing_fingerprint' => $proposal['fingerprint']]);
+        }
+        unset($line);
+        ProductVariant::where('sku', 'MODEL-A')->update(['supplier_price_minor' => 6000]);
+        $before = AdminAuditEvent::count();
+        $this->put(route('admin.quotes.update', $quote), $data)->assertStatus(409);
+        $this->assertSame([0, 0], $quote->fresh()->items->pluck('unit_minor')->all());
+        $this->assertSame(1, $quote->fresh()->revision);
+        $this->assertSame($before, AdminAuditEvent::count());
+    }
+
+    public function test_cost_panel_requires_costs_management_and_is_absent_on_issued_quotes(): void
+    {
+        $this->prepare();
+        $admin = auth()->user();
+        $quote = app(QuoteService::class)->save($this->data(), $admin->id);
+        $this->actingAsAdmin($this->userWithPermissions(['quotes.view']));
+        $this->get(route('admin.quotes.show', $quote))->assertOk()->assertViewHas('proposals', [])
+            ->assertDontSee('data-pricing-panel', false)->assertDontSee('Procedencia del precio guardado');
+        $this->getJson(route('admin.quotes.price-proposal', ['variant_id' => $this->variant()->id, 'quantity' => 50]))->assertForbidden();
+        $this->actingAsAdmin($admin);
+        $version = app(QuoteService::class)->issue($quote, 1, (string) Str::uuid(), $admin->id);
+        $snapshot = $version->snapshot;
+        $this->get(route('admin.quotes.show', $quote))->assertOk()->assertViewHas('proposals', [])->assertDontSee('data-pricing-panel', false);
+        $this->assertSame($snapshot, $version->fresh()->snapshot);
+        $this->assertSame($version->sha256, hash('sha256', Storage::disk('local')->get($version->path)));
+    }
+
     private function reference(): array
     {
         return json_decode(file_get_contents(base_path('tests/Fixtures/Commerce/legacy-price-scales.json')), true, flags: JSON_THROW_ON_ERROR);

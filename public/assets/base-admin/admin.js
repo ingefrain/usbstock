@@ -24,21 +24,49 @@
     const shell = document.querySelector('.admin-shell');
     const toggle = document.querySelector('[data-menu-toggle]');
     const close = document.querySelector('[data-drawer-close]');
+    const sidebar = document.querySelector('#admin-sidebar');
+    const dismiss = sidebar?.querySelector('[data-drawer-dismiss]');
+    const workspace = document.querySelector('.workspace');
+    const compact = matchMedia('(max-width: 1050px)');
 
-    if (!shell || !toggle || !close) return;
+    if (!shell || !toggle || !close || !sidebar || !dismiss || !workspace) return;
 
-    const setOpen = (open) => {
+    const setOpen = (open, returnFocus = true) => {
+        open = open && compact.matches;
         shell.classList.toggle('drawer-open', open);
+        document.body.classList.toggle('admin-drawer-open', open);
         toggle.setAttribute('aria-expanded', String(open));
-        if (open) close.focus();
-        else toggle.focus();
+        toggle.setAttribute('aria-label', open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación');
+        sidebar.inert = compact.matches && !open;
+        workspace.inert = open;
+        if (open) { sidebar.setAttribute('role', 'dialog'); sidebar.setAttribute('aria-modal', 'true'); dismiss.focus({preventScroll: true}); }
+        else {
+            sidebar.removeAttribute('role'); sidebar.removeAttribute('aria-modal');
+            if (returnFocus && compact.matches) toggle.focus({preventScroll: true});
+        }
     };
 
     toggle.addEventListener('click', () => setOpen(!shell.classList.contains('drawer-open')));
     close.addEventListener('click', () => setOpen(false));
+    dismiss.addEventListener('click', () => setOpen(false));
+    sidebar.addEventListener('click', event => { if (event.target.closest('a[href]') && compact.matches) setOpen(false); });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && shell.classList.contains('drawer-open')) setOpen(false);
+        if (!shell.classList.contains('drawer-open')) return;
+        if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
+        if (event.key === 'Tab') {
+            const controls = [...sidebar.querySelectorAll('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el => el.getClientRects().length);
+            const first = controls[0], last = controls.at(-1);
+            if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+                event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+            }
+        }
     });
+    compact.addEventListener('change', () => {
+        const inside = sidebar.contains(document.activeElement);
+        setOpen(false, inside);
+        if (!compact.matches && document.activeElement === dismiss) sidebar.querySelector('a[href]')?.focus({preventScroll: true});
+    });
+    setOpen(false, false);
 
     document.documentElement.classList.add('js-enabled');
 

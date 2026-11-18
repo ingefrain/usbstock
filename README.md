@@ -38,6 +38,8 @@ El directorio corporativo se consulta desde backend con `CORPORATE_CONTACTS_KEY`
 
 La administración de escalas está en `/admin/price-scales` con permiso `commerce.configure`: límites, incrementos, estado, simulación e historial. El motor aplica bandas sobre cantidad × costo propio de la variante, con reglas heredadas verificadas. La conversión de solicitudes propone precios; cambios posteriores requieren aceptar la propuesta explícitamente. Ajustes manuales conservan auditoría y no recalculan emisiones anteriores. Detalles, evidencia independiente y herramientas aisladas en [tools/pricing/README.md](tools/pricing/README.md).
 
+Los borradores muestran sus propuestas al abrirse para usuarios de costos. «Aplicar propuestas a partidas en cero» prepara todas las elegibles sin sobrescribir precios manuales; «Guardar y calcular» las persiste con control de revisión y auditoría. El administrador comparte un único breakpoint de navegación a 1050 px, con drawer accesible y restablecimiento al redimensionar. Evidencia y validación en [tools/admin-repair/README.md](tools/admin-repair/README.md).
+
 FTP, Scheduler comercial, aplicación automática y Telegram permanecen desactivados en el entorno local; no configurar destinatario comercial durante esta revisión. La fase visual no autoriza conexiones externas ni publicación.
 
 ## Documentación

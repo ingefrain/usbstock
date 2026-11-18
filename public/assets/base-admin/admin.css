@@ -29,7 +29,7 @@ code { color: #274c61; font-size: .88em; overflow-wrap: anywhere; }
 .skip-link { position: fixed; z-index: 80; top: 10px; left: 10px; padding: 10px 14px; transform: translateY(-160%); background: white; border-radius: 8px; }
 .skip-link:focus { transform: translateY(0); }
 
-.admin-shell { min-height: 100vh; display: grid; grid-template-columns: 258px minmax(0, 1fr); }
+.admin-shell { min-height: 100vh; display: grid; grid-template-columns: var(--admin-sidebar-width, 258px) minmax(0, 1fr); }
 .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; padding: 22px 16px 16px; color: #eff6f8; background: var(--navy); }
 .brand, .guest-brand { display: flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; }
 .sidebar .brand:hover, .sidebar .brand:focus-visible { color: #fff; }
@@ -67,7 +67,13 @@ code { color: #274c61; font-size: .88em; overflow-wrap: anywhere; }
 .account-menu-button { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
 .main-content { width: min(1480px, 100%); min-height: calc(100vh - 140px); margin: 0 auto; padding: 30px clamp(18px, 3vw, 42px) 44px; }
 .workspace-footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px clamp(18px, 3vw, 42px); border-top: 1px solid var(--line); color: var(--muted); font-size: .78rem; }
-.menu-toggle, .drawer-scrim { display: none; }
+.menu-toggle, .drawer-scrim, .drawer-heading { display: none; }
+.sidebar, .main-content, .main-content fieldset, .topbar-start, .page-heading { min-width: 0; }
+.topbar-start { flex: 1; }
+.topbar .page-heading { overflow-wrap: anywhere; }
+.topbar .profile-menu, .menu-toggle { flex-shrink: 0; }
+.table-wrap { max-width: 100%; min-width: 0; }
+body.admin-drawer-open { overflow: hidden; }
 
 .page-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
 .page-intro h2 { margin-bottom: 3px; font-size: 1.55rem; }
@@ -292,14 +298,19 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--teal); }
 .guest-card :is(input, button):disabled { color: #425a68; background: #e6edf0; cursor: not-allowed; }
 .form-footnote { margin: 20px 0 0; text-align: center; font-size: .85rem; }
 
-@media (max-width: 900px) {
+/* One layout breakpoint; keep the drawer controller aligned with it. Themes only set the sidebar width. */
+@media (max-width: 1050px) {
     .admin-shell { grid-template-columns: 1fr; }
-    .sidebar { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(82vw, 300px); height: 100dvh; transform: translateX(-102%); transition: transform .2s ease; box-shadow: 12px 0 35px rgb(8 31 46 / 20%); }
-    .drawer-open .sidebar { transform: translateX(0); }
+    .sidebar { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(82vw, 300px); height: 100dvh; visibility: hidden; transform: translateX(-102%); transition: transform .2s ease; box-shadow: 12px 0 35px rgb(8 31 46 / 20%); }
+    .drawer-open .sidebar { transform: translateX(0); visibility: visible; }
+    .drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    .drawer-dismiss { flex: none; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); cursor: pointer; font-size: 22px; }
     .drawer-open .drawer-scrim { position: fixed; z-index: 35; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: rgb(8 28 42 / 48%); }
     .menu-toggle { display: inline-grid; width: 42px; height: 42px; place-items: center; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: white; cursor: pointer; }
     .metric-grid { gap: 10px; }
     .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    html:not(.js-enabled) .sidebar { position: static; width: 100%; height: auto; visibility: visible; transform: none; box-shadow: none; }
+    html:not(.js-enabled) :is(.menu-toggle, .drawer-heading) { display: none; }
 }
 @media (max-width: 650px) {
     .topbar { min-height: 74px; padding-inline: 15px; }

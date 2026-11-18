@@ -1,10 +1,12 @@
 <?php
 
 use App\Commerce\CommercialPricing;
+use App\Commerce\QuoteService;
 use App\Commerce\SupplierDownloader;
 use App\Commerce\SupplierPipeline;
 use App\Commerce\SupplierSync;
 use App\Models\CommercialPriceScale;
+use App\Models\Quote;
 use App\Models\SupplierSyncRun;
 use App\Services\Outbox\OutboxProcessor;
 use Illuminate\Contracts\Console\Kernel;
@@ -46,7 +48,21 @@ while (! is_file($gate)) {
     usleep(10000);
 }
 
-if (($argv[3] ?? '') === 'pricing') {
+if (($argv[3] ?? '') === 'quote-pricing') {
+    $quote = Quote::findOrFail($messageId);
+    $line = $quote->items->sole();
+    $proposal = app(CommercialPricing::class)->proposal($line->variant, $line->quantity);
+    try {
+        app(QuoteService::class)->save(['revision' => 1, 'customer_name' => 'Concurrent QA', 'customer_email' => 'qa@example.test', 'terms' => 'Isolated QA', 'validity_days' => 30, 'tax_basis_points' => 1600, 'shipping' => '0',
+            'items' => [['variant_id' => $line->product_variant_id, 'quantity' => $line->quantity, 'unit_price' => $proposal['price'], 'printing_price' => '0', 'discount' => '0', 'pricing_action' => 'automatic', 'pricing_fingerprint' => $proposal['fingerprint']]]], (int) $argv[4], $quote);
+        echo 'saved';
+    } catch (HttpException $exception) {
+        if ($exception->getStatusCode() !== 409) {
+            throw $exception;
+        }
+        echo 'conflict';
+    }
+} elseif (($argv[3] ?? '') === 'pricing') {
     try {
         app(CommercialPricing::class)->save(['name' => 'Concurrent scale', 'lower' => '0', 'upper' => '3000', 'increment' => '36', 'is_active' => true,
             'revision' => 1, 'source_reference' => 'Isolated concurrency test'], (int) $argv[4], CommercialPriceScale::findOrFail($messageId));

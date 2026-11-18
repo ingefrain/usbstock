@@ -34,6 +34,33 @@ class MariaDbOutboxIntegrationTest extends TestCase
 {
     use InteractsWithBaseAdmin;
 
+    public function test_two_administrators_cannot_overwrite_a_zero_draft_concurrently(): void
+    {
+        $actor = $this->adminUser();
+        app(CommercialPricing::class)->save(['name' => 'Isolated price rule', 'lower' => '0', 'upper' => null, 'increment' => '35', 'is_active' => true, 'revision' => 1, 'source_reference' => 'Isolated concurrency fixture'], $actor->id);
+        $sync = app(SupplierSync::class);
+        $sync->apply($sync->preview("SKU,PIEZAS,DESCRIPCION,PRECIO_SIN_IVA\nCONCURRENT-A,100,Isolated QA,70", 'isolated.csv', null), null);
+        $variant = ProductVariant::sole();
+        $quote = app(QuoteService::class)->save(['revision' => 1, 'customer_name' => 'Concurrent QA', 'customer_email' => 'qa@example.test', 'terms' => 'Isolated QA', 'validity_days' => 30, 'tax_basis_points' => 1600, 'shipping' => '0',
+            'items' => [['variant_id' => $variant->id, 'quantity' => 50, 'unit_price' => '0', 'printing_price' => '0', 'discount' => '0']]], $actor->id);
+        $gate = tempnam(sys_get_temp_dir(), 'quote-price-gate-');
+        unlink($gate);
+        $workers = collect([1, 2])->map(fn () => new Process([PHP_BINARY, base_path('tests/Support/mariadb_outbox_worker.php'), (string) $quote->id, $gate, 'quote-pricing', (string) $actor->id], base_path(), ['APP_ENV' => 'testing', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:']));
+        foreach ($workers as $worker) {
+            $worker->start();
+        }
+        touch($gate);
+        foreach ($workers as $worker) {
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+        }
+        unlink($gate);
+        $this->assertSame(['conflict', 'saved'], $workers->map(fn ($w) => $w->getOutput())->sort()->values()->all());
+        $this->assertSame(2, $quote->fresh()->revision);
+        $this->assertSame(9450, $quote->fresh()->items->sole()->unit_minor);
+        $this->assertSame(2, AdminAuditEvent::where('action', 'quote.pricing_saved')->where('entity_id', $quote->uuid)->count());
+    }
+
     public function test_commercial_scale_edits_serialize_and_reject_a_stale_administrator(): void
     {
         $actor = $this->adminUser();

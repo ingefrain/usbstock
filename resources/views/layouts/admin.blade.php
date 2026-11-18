@@ -24,7 +24,8 @@
     @php($navigationImports = $navigationUser && app(\App\Imports\ImportAccess::class)->allows($navigationUser, 'imports.view'))
     <div class="admin-shell">
         <button class="drawer-scrim" type="button" data-drawer-close aria-label="Cerrar menú" tabindex="-1"></button>
-        <aside class="sidebar" id="admin-sidebar" aria-label="Navegación administrativa">
+        <aside class="sidebar" id="admin-sidebar" aria-label="Navegación administrativa" tabindex="-1">
+            <div class="drawer-heading"><strong>Menú administrativo</strong><button class="drawer-dismiss" type="button" data-drawer-dismiss aria-label="Cerrar menú de navegación">×</button></div>
             <a class="brand" href="{{ $navigationCan('dashboard.view') ? route('admin.dashboard') : ($navigationCan('users.view') ? route('admin.settings.index') : route('admin.profile.edit')) }}">
                 @if($branding->logo)<img class="brand-logo" src="{{ route('branding.logo') }}?v={{ substr($branding->logo->checksum, 0, 16) }}" alt="">@else<img class="brand-logo" src="{{ asset('brand/logo.webp') }}" alt="">@endif
                 <span><strong>{{ $branding->displayName() }}</strong><small>Administración</small></span>

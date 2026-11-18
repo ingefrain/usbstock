@@ -20,6 +20,24 @@
     margin-block:20px
 }
 
+.quote-pricing, .quote-pricing-bulk { min-width: 0; padding: 18px; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; background: #f6f8fa; }
+.quote-pricing-bulk { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
+.quote-pricing-bulk > div { flex: 1 1 260px; min-width: 0; }
+.quote-pricing-bulk > .field-hint { flex-basis: 100%; }
+.quote-pricing-bulk p, .quote-pricing h3, .quote-pricing-bulk h3 { margin: 0; }
+.quote-pricing-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.quote-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 16px 20px; margin: 0 0 14px; }
+.quote-pricing-grid > div { min-width: 0; }
+.quote-pricing-grid dt { color: var(--muted); font-size: 12px; }
+.quote-pricing-grid dd { margin: 4px 0 0; font-size: 15px; font-weight: 750; overflow-wrap: anywhere; }
+.quote-pricing-grid .quote-proposed dd { color: var(--teal); font-size: 22px; }
+.quote-pricing [data-pricing-status] { margin: 14px 0; }
+.quote-pricing .field { margin-top: 18px; }
+.pricing-provenance { font-size: 12px; margin-block: 12px; overflow-wrap: anywhere; }
+.pricing-provenance summary { cursor: pointer; }
+.pricing-provenance p { margin: 10px 0; }
+.quote-pricing .form-actions { flex-wrap: wrap; gap: 10px; }
+
 .admin-form-surface fieldset.panel {
     min-width:0
 }

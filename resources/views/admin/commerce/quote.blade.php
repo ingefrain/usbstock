@@ -2,7 +2,8 @@
 @section('title', $quote->exists ? $quote->label : 'Nueva cotización')
 @section('content')
 @php
-    $editable = $quote->status === 'draft' && \App\Commerce\CommerceAccess::allows(auth()->user(), 'quotes.manage');
+    $canViewCosts = \App\Commerce\CommerceAccess::allows(auth()->user(), 'quotes.manage');
+    $editable = $quote->status === 'draft' && $canViewCosts;
     $lines = old('items', $quote->items->map(fn ($i) => ['variant_id' => $i->product_variant_id, 'quantity' => $i->quantity, 'unit_price' => \App\Commerce\Money::decimal($i->unit_minor), 'printing_price' => \App\Commerce\Money::decimal($i->printing_minor), 'discount' => \App\Commerce\Money::decimal($i->discount_minor), 'printing' => $i->printing, 'pricing' => $i->pricing])->all());
     if (!$lines) $lines = [['quantity' => 50, 'unit_price' => '0.00', 'printing_price' => '0.00', 'discount' => '0.00']];
 @endphp
@@ -24,6 +25,7 @@
 <div class="field"><label for="tax_percent">IVA (%)</label><input id="tax_percent" type="number" step="0.01" name="tax_percent" min="0" max="100" value="{{ old('tax_percent', \App\Commerce\Money::decimal($quote->tax_basis_points)) }}" required></div>
 <div class="field"><label for="shipping">Envío MXN</label><input id="shipping" name="shipping" inputmode="decimal" value="{{ old('shipping', \App\Commerce\Money::decimal($quote->shipping_minor)) }}" required></div></div>
 <h2>Partidas</h2><p class="muted">Captura precios de venta sin IVA. El descuento es un importe por partida, aplicado después del IVA. Al guardar se recalculan los totales. Las propuestas comerciales requieren aceptación explícita; cambiar cantidad o costo no sustituye un precio guardado.</p>
+@if($editable)<section class="quote-pricing-bulk" aria-label="Aplicar precios comerciales"><div><h3>Propuestas comerciales listas para revisar</h3><p data-pricing-summary>Las propuestas se muestran en cada partida. Los precios guardados se conservan hasta aceptar y guardar.</p></div><button type="button" class="button button-primary" data-pricing-apply-zero disabled>Aplicar propuestas a partidas en cero</button><p class="field-hint">Esta acción completa solo partidas cuyo precio guardado y capturado siguen en cero. Después pulsa «Guardar y calcular».</p><noscript><p>Las propuestas están visibles. Activa JavaScript para aplicarlas en conjunto o captura el precio manualmente.</p></noscript></section>@endif
 <div data-quote-lines>
 @foreach($lines as $i=>$line)
 @include('admin.commerce.quote-line', ['index'=>$i, 'line'=>$line])

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Commerce\CommerceAccess;
+use App\Commerce\CommercialPricing;
 use App\Commerce\QuoteService;
 use App\Models\CommercialClient;
 use App\Models\CommercialSeller;
@@ -51,7 +52,22 @@ final class QuoteController
 
     private function form(Quote $quote)
     {
-        return view('admin.commerce.quote', ['quote' => $quote->load(['items', 'versions', 'sourceRequest', 'sellerRecord']), 'variants' => ProductVariant::with('product')->orderBy('sku')->get(), 'clients' => CommercialClient::orderBy('name')->get(), 'sellers' => CommercialSeller::where('is_active', true)->orWhere('id', $quote->seller_id)->orderBy('name')->get()]);
+        $quote->load(['items', 'versions', 'sourceRequest', 'sellerRecord']);
+        $variants = ProductVariant::with('product')->orderBy('sku')->get();
+        $proposals = [];
+        if ($quote->status === 'draft' && CommerceAccess::allows(auth()->user(), 'quotes.manage')) {
+            $lines = old('items', $quote->items->map(fn ($item) => ['variant_id' => $item->product_variant_id, 'quantity' => $item->quantity])->all());
+            $byId = $variants->keyBy('id');
+            foreach (array_slice(is_array($lines) ? $lines : [], 0, 100, true) as $index => $line) {
+                $variant = is_array($line) && is_scalar($line['variant_id'] ?? null) ? $byId->get($line['variant_id']) : null;
+                $quantity = filter_var($line['quantity'] ?? null, FILTER_VALIDATE_INT);
+                if ($variant && $quantity !== false && $quantity >= 50 && $quantity <= 1000000) {
+                    $proposals[$index] = app(CommercialPricing::class)->proposal($variant, $quantity);
+                }
+            }
+        }
+
+        return view('admin.commerce.quote', ['quote' => $quote, 'variants' => $variants, 'proposals' => $proposals, 'clients' => CommercialClient::orderBy('name')->get(), 'sellers' => CommercialSeller::where('is_active', true)->orWhere('id', $quote->seller_id)->orderBy('name')->get()]);
     }
 
     public function store(Request $request, QuoteService $service)

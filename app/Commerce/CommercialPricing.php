@@ -76,8 +76,9 @@ final class CommercialPricing
 
     public function proposal(ProductVariant $variant, int $quantity): array
     {
+        $context = ['cost_minor' => $variant->supplier_price_minor, 'quantity' => $quantity, 'sku' => $variant->sku];
         if (! $variant->provider_active || ! $variant->is_enabled || $quantity > $variant->stock) {
-            return $this->unavailable('La variante no está disponible para esa cantidad.');
+            return $this->unavailable('La variante no está disponible para esa cantidad.') + ['context' => $context];
         }
         // Approved on 2026-11-18: use the quoted variant's own current supplier cost,
         // rather than the legacy view's minimum cost across sibling variants.
@@ -89,7 +90,7 @@ final class CommercialPricing
             $result['fingerprint'] = hash('sha256', json_encode($result['basis'], JSON_THROW_ON_ERROR));
         }
 
-        return $result;
+        return $result + ['context' => $context];
     }
 
     public function linePricing(ProductVariant $variant, array $line, ?QuoteItem $previous, int $actor): ?array

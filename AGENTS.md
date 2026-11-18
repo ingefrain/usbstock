@@ -21,6 +21,8 @@ Todos esos documentos están en ../xtras/docs. Las migraciones definen el esquem
 Revisa las vistas existentes. Usa superficie administrativa centrada o amplia y grid responsive. Cada campo agrupa label, control, ayuda y error. Evita tarjetas limitadas por max-width pegadas a la izquierda.
 Reutiliza Dropzone, Markdown, Toggle para estados reversibles, Notify para feedback temporal, Alert para información persistente y Modal/Confirm Dialog para confirmaciones. Evita window.alert() y window.confirm(). Revisa los componentes propios antes de introducir otra dependencia.
 
+El grid/sidebar administrativo se define en `public/assets/base-admin/admin.css`, con drawer hasta 1050 px y controlador alineado en `admin.js`. Los temas solo ajustan `--admin-sidebar-width`; no introducir otro breakpoint del grid. Al modificar el layout comprobar 900, 1024, 1039 y 1100 px, redimensionamiento y foco, además de móvil/escritorio.
+
 Listados administrativos: usa `adminPaginate(50|100|200)` sobre la consulta autorizada y `links()` incluso en estado vacío. El argumento es el máximo; el inicio es 20. Reutiliza `x-admin.pagination` y su CSS propio, sin vistas Tailwind de vendor. No sustituir los cursores del catálogo público. Contrato y límites en `../xtras/docs/MODERNIZACION_UX_OPERATIVA_USBSTOCK.md`.
 
 ## Datos y seguridad
