@@ -6,6 +6,7 @@ use App\Commerce\CommerceAccess;
 use App\Commerce\QuoteService;
 use App\Models\CommercialClient;
 use App\Models\CommercialSetting;
+use App\Models\CommercialSeller;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
@@ -38,7 +39,7 @@ final class QuoteController
     {
         $this->access('quotes.manage');
 
-        return $this->form(new Quote(['status' => 'draft', 'revision' => 1, 'seller' => $request->user()->name, 'tax_basis_points' => 1600, 'validity_days' => 30, 'shipping_minor' => 0, 'terms' => CommercialSetting::values()['terms'] ?? '']));
+        return $this->form(new Quote(['status' => 'draft', 'revision' => 1, 'seller' => '', 'tax_basis_points' => 1600, 'validity_days' => 30, 'shipping_minor' => 0, 'terms' => CommercialSetting::values()['terms'] ?? '']));
     }
 
     public function show(Quote $quote)
@@ -50,7 +51,7 @@ final class QuoteController
 
     private function form(Quote $quote)
     {
-        return view('admin.commerce.quote', ['quote' => $quote->load(['items', 'versions']), 'variants' => ProductVariant::with('product')->orderBy('sku')->get(), 'clients' => CommercialClient::orderBy('name')->get()]);
+        return view('admin.commerce.quote', ['quote' => $quote->load(['items', 'versions', 'sourceRequest', 'sellerRecord']), 'variants' => ProductVariant::with('product')->orderBy('sku')->get(), 'clients' => CommercialClient::orderBy('name')->get(), 'sellers' => CommercialSeller::where('is_active', true)->orWhere('id', $quote->seller_id)->orderBy('name')->get()]);
     }
 
     public function store(Request $request, QuoteService $service)

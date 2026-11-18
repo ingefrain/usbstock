@@ -4,7 +4,7 @@
 @if(!$pdf)
 @font-face { font-family:dejavusans; src:url(data:font/ttf;base64,{{ $fonts['regular'] }}) format('truetype'); font-weight:normal; }
 @font-face { font-family:dejavusans; src:url(data:font/ttf;base64,{{ $fonts['bold'] }}) format('truetype'); font-weight:bold; }
-@page { size: A4; margin: 14mm 14mm 17mm; }
+@page { size: Letter portrait; margin: 14mm 14mm 17mm; }
 @endif
 body { font-family: dejavusans, sans-serif; font-size:9pt; color:#26282c; line-height:1.45; margin:0; }
 p { margin:0 0 2mm; } table { border-collapse:collapse; width:100%; } td { vertical-align:top; } h1,h2,h3 { margin:0; font-weight:bold; }
@@ -41,8 +41,18 @@ body { font-size:8pt; } .header { padding:4mm; border-radius:3mm; } .header h1 {
 .amounts { margin-top:1mm; } .amounts td { padding-top:2mm; } .summary { background-color:#f7f7f8; border-color:#d8dadd; padding:4mm; }
 @endif
 @if(!$pdf)
-body { background:#e9ebef; } .sheet { box-sizing:border-box; width:210mm; min-height:297mm; padding:14mm 14mm 17mm; margin:10mm auto; background:white; box-shadow:0 2mm 7mm #c7cbd2; }
+body { background:#e9ebef; } .sheet { box-sizing:border-box; width:215.9mm; min-height:279.4mm; padding:14mm 14mm 17mm; margin:10mm auto; background:white; box-shadow:0 2mm 7mm #c7cbd2; }
 @media print { body { background:white; } .sheet { width:auto; min-height:0; margin:0; padding:0; box-shadow:none; } }
+@endif
+/* One-line quotes keep conditions together on Letter without reducing body text. */
+@if(count($s['items']) === 1)
+body { line-height:1.25; }
+.header { padding:3mm 4mm; margin-bottom:3mm; } .header h1 { margin-top:2mm; font-size:20pt; }
+.client { padding:3mm 4mm; margin-bottom:3mm; } .product { padding:3mm 4mm; margin-bottom:3mm; }
+.product .photo { width:27mm; height:27mm; } .section-title { margin:3mm 0 2mm; }
+.summary { padding:3mm; margin:3mm 0; } .summary td { padding:0.6mm 0; }
+.terms-heading { padding:2mm 3mm; margin:3mm 0 2mm; page-break-inside:avoid; page-break-after:avoid; }
+.terms p { margin-bottom:2mm; } .test { margin-bottom:3mm; }
 @endif
 </style></head><body class="concept-{{ $concept }}"><div class="sheet">
 <div class="test">{{ ($s['is_fixture'] ?? false) ? 'DATOS FICTICIOS · DOCUMENTO DE PRUEBA · SIN VALIDEZ COMERCIAL' : 'VISTA PREVIA DE BORRADOR · NO EMITIDA' }} · PROPUESTA {{ strtoupper($concept) }}</div>

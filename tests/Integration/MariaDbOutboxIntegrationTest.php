@@ -191,6 +191,31 @@ class MariaDbOutboxIntegrationTest extends TestCase
 
     private const CONNECTION = 'outbox_mariadb_test';
 
+    public function test_request_seller_attribution_and_idempotent_conversion_on_mariadb(): void
+    {
+        Storage::fake('local');
+        $this->actingAsAdmin();
+        CatalogDataset::create(1, 2);
+        $service = app(\App\Commerce\PublicQuoteRequests::class);
+        $variant = ProductVariant::firstOrFail();
+        $request = $service->submit(['name' => 'Cliente QA', 'email' => 'qa@example.test', 'phone' => '5555555555', 'country' => 'México'], [$variant->id => 50], 'Observación QA', hash('sha256', 'isolated-seller'), ['has_seller' => true, 'seller_name' => ' Josè Luis ']);
+        $seller = \App\Models\CommercialSeller::create(['name' => 'José Luis · QA', 'is_active' => true]);
+        $service->assignSeller($request, $seller->id, 1, auth()->id());
+        $quote = $service->convert($request, auth()->id());
+        $this->assertSame($quote->id, $service->convert($request, auth()->id())->id);
+        $this->assertDatabaseCount('commercial_clients', 1);
+        $this->assertSame(' Josè Luis ', $quote->fresh()->seller_original_name);
+        $this->assertSame($seller->id, $quote->fresh()->seller_id);
+        $this->assertSame($request->id, $quote->sourceRequest->id);
+        $this->get(route('admin.quote-requests.index', ['q' => 'Cliente QA']))->assertOk()->assertSee('Josè Luis');
+        try {
+            $seller->delete();
+            $this->fail('Referenced seller must be retained');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+    }
+
     private static bool $schemaCreated = false;
 
     protected function setUp(): void
@@ -247,7 +272,7 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-            $this->assertSame(25, DB::table('migrations')->count());
+            $this->assertSame(26, DB::table('migrations')->count());
         }
     }
 

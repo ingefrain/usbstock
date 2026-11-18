@@ -24,6 +24,7 @@ final class PublicCatalog
     {
         // Only public presentation fields; do not hydrate variant costs or all variants.
         return Product::catalogVisible()->select(['products.id', 'uuid', 'external_key', 'slug', 'custom_name', 'custom_description', 'supplier_description', 'capacity_gb'])
+            ->addSelect(['category_name' => \App\Models\ProductCategory::select('name')->whereColumn('product_categories.id', 'products.product_category_id')->limit(1)])
             ->with('image')
             ->withCount(['variants as available_variants_count' => fn ($q) => $q->where('provider_active', true)->where('is_enabled', true)->where('stock', '>=', 50)])
             ->when($filters['q'] ?? null, function ($query, $search): void {

@@ -39,7 +39,7 @@ final class CommercialConfigController
     public function saveClient(Request $request, AdminAuditLogger $audit, ?CommercialClient $client = null)
     {
         CommerceAccess::authorize('clients.manage');
-        $data = $request->validate(['name' => 'required|string|max:180', 'company' => 'nullable|string|max:180', 'email' => 'required|email|max:180', 'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:2000']);
+        $data = $request->validate(['name' => 'required|string|max:180', 'company' => 'nullable|string|max:180', 'email' => 'required|email|max:180', 'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:2000', 'country' => 'nullable|string|max:100']);
         $client ??= new CommercialClient;
         $client->fill($data)->save();
         $audit->record('client.saved', 'client', $client->uuid);

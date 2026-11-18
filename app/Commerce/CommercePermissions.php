@@ -5,6 +5,7 @@ namespace App\Commerce;
 final class CommercePermissions
 {
     public const DEFINITIONS = [
+        'sellers.manage' => 'Administrar el directorio comercial de vendedores',
         'products.view' => 'Consultar catálogo comercial',
         'products.manage' => 'Administrar productos, imágenes y categorías',
         'supplier_sync.view' => 'Consultar sincronizaciones de proveedor',

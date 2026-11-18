@@ -1,0 +1,23 @@
+:root {
+    --usb-brand: #ef1239;
+    --usb-action: #c51636;
+    --usb-ink: #192d3c;
+    --usb-muted: #626b70;
+    --usb-surface: #ffffff;
+    --usb-canvas: #f5f6f6;
+    --usb-line: #dbe0e2;
+    --usb-success: #176348;
+    --usb-warning: #80540a;
+    --usb-focus: #1468c0;
+    --usb-font: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif;
+    --usb-radius: 18px;
+    --usb-shadow: 0 12px 35px #19212609;
+    --usb-space-1: 4px;
+    --usb-space-2: 8px;
+    --usb-space-3: 12px;
+    --usb-space-4: 16px;
+    --usb-space-6: 24px;
+    --usb-space-8: 32px;
+    --usb-space-12: 48px;
+    --usb-space-16: 64px;
+}

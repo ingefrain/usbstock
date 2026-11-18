@@ -12,7 +12,7 @@ final class QuoteDesigns
 {
     public const CONCEPTS = ['a' => 'Premium corporativo', 'b' => 'Catálogo comercial', 'c' => 'Ejecutivo minimalista'];
 
-    public const VERSION = 'review-1';
+    public const VERSION = 'review-2-letter';
 
     public function fixture(int $count): array
     {
@@ -66,7 +66,7 @@ final class QuoteDesigns
         $directory = storage_path('app/private/pdf-temp/'.Str::uuid());
         File::ensureDirectoryExists($directory, 0700);
         try {
-            $pdf = new Mpdf(['tempDir' => $directory, 'format' => 'A4', 'margin_top' => 14, 'margin_bottom' => 17, 'margin_left' => 14, 'margin_right' => 14, 'default_font' => 'dejavusans', 'default_font_size' => 9, 'shrink_tables_to_fit' => 1], new SimpleContainer(['assetFetcher' => new BlockedPdfAssets]));
+            $pdf = new Mpdf(['tempDir' => $directory, 'format' => 'Letter', 'orientation' => 'P', 'margin_top' => 14, 'margin_bottom' => 17, 'margin_left' => 14, 'margin_right' => 14, 'default_font' => 'dejavusans', 'default_font_size' => 9, 'shrink_tables_to_fit' => 1], new SimpleContainer(['assetFetcher' => new BlockedPdfAssets]));
             $pdf->imageVars = $this->assets($snapshot);
             $pdf->SetTitle('USB Stock · Propuesta '.strtoupper($concept).' · '.$snapshot['folio']);
             $pdf->SetAuthor('USB Stock');

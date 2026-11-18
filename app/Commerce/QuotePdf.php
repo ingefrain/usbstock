@@ -10,14 +10,14 @@ use Mpdf\Output\Destination;
 
 final class QuotePdf
 {
-    public const VERSION = 'usbstock-1';
+    public const VERSION = 'usbstock-2-letter';
 
     public function render(array $snapshot): string
     {
         $directory = storage_path('app/private/pdf-temp/'.Str::uuid());
         File::ensureDirectoryExists($directory, 0700);
         try {
-            $pdf = new Mpdf(['tempDir' => $directory, 'format' => 'A4', 'margin_top' => 18, 'margin_bottom' => 18, 'margin_left' => 14, 'margin_right' => 14, 'default_font' => 'dejavusans', 'default_font_size' => 9], new SimpleContainer(['assetFetcher' => new BlockedPdfAssets]));
+            $pdf = new Mpdf(['tempDir' => $directory, 'format' => 'Letter', 'orientation' => 'P', 'margin_top' => 18, 'margin_bottom' => 18, 'margin_left' => 14, 'margin_right' => 14, 'default_font' => 'dejavusans', 'default_font_size' => 9], new SimpleContainer(['assetFetcher' => new BlockedPdfAssets]));
             $pdf->imageVars['usbStockLogo'] = File::get(resource_path('pdf/logo.png'));
             $pdf->SetTitle('Cotización '.$snapshot['folio']);
             $pdf->SetAuthor('USB Stock');

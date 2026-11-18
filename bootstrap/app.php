@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Preserve the customer's literal spelling, accents and whitespace.
+        $middleware->trimStrings(except: ['seller_name']);
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
             'session.current' => EnsureSessionIsCurrent::class,

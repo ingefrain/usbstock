@@ -3,6 +3,7 @@
 namespace App\Commerce;
 
 use App\Models\CommercialSetting;
+use App\Models\CommercialSeller;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class QuoteService
@@ -26,7 +28,8 @@ final class QuoteService
         $data = Validator::make($input, [
             'revision' => 'required|integer|min:1', 'client_id' => 'nullable|integer|exists:commercial_clients,id',
             'customer_name' => 'required|string|max:180', 'customer_company' => 'nullable|string|max:180', 'customer_email' => 'required|email|max:180',
-            'customer_phone' => 'nullable|string|max:50', 'customer_address' => 'nullable|string|max:2000', 'seller' => 'required|string|max:180',
+            'customer_phone' => 'nullable|string|max:50', 'customer_address' => 'nullable|string|max:2000', 'customer_country' => 'nullable|string|max:100', 'seller' => 'nullable|string|max:180',
+            'seller_id' => ['nullable', 'integer', Rule::exists('commercial_sellers', 'id')->where('is_active', true)],
             'terms' => 'nullable|string|max:6000', 'validity_days' => 'required|integer|min:1|max:365', 'tax_basis_points' => 'required|integer|min:0|max:10000',
             'shipping' => ['required', 'regex:/^\d{1,7}(\.\d{1,2})?$/'], 'items' => 'required|array|min:1|max:100',
             'items.*.variant_id' => 'required|integer|distinct|exists:product_variants,id', 'items.*.quantity' => 'required|integer|min:1|max:1000000',
@@ -41,20 +44,27 @@ final class QuoteService
                 $quote = Quote::lockForUpdate()->findOrFail($quote->id);
                 abort_unless($quote->status === 'draft' && $quote->revision === (int) $data['revision'], 409, 'El borrador cambió o ya fue emitido.');
             }
+            $previousProducts = $quote?->items()->get()->keyBy('product_variant_id');
+            $previousSeller = $quote?->seller_id;
             $lines = [];
             foreach ($data['items'] as $position => $line) {
                 $variant = ProductVariant::with('product')->findOrFail($line['variant_id']);
                 $lines[] = ['position' => count($lines) + 1, 'product_variant_id' => $variant->id,
-                    'product' => ['sku' => $variant->sku, 'name' => $variant->product->name, 'description' => $variant->product->description, 'color' => $variant->color, 'capacity_gb' => $variant->product->capacity_gb],
+                    'product' => $previousProducts?->get($variant->id)?->product ?? ['sku' => $variant->sku, 'name' => $variant->product->name, 'description' => $variant->product->description, 'color' => $variant->color, 'capacity_gb' => $variant->product->capacity_gb],
                     'quantity' => (int) $line['quantity'], 'unit_minor' => Money::parse($line['unit_price']), 'printing_minor' => Money::parse($line['printing_price']), 'discount_minor' => Money::parse($line['discount']), 'printing' => $line['printing'] ?? null];
             }
             $totals = $this->calculator->calculate($lines, (int) $data['tax_basis_points'], Money::parse($data['shipping']));
             $quote ??= new Quote(['created_by' => $actorId]);
-            $quote->fill(['commercial_client_id' => $data['client_id'] ?? null, 'customer' => ['name' => $data['customer_name'], 'company' => $data['customer_company'] ?? null, 'email' => $data['customer_email'], 'phone' => $data['customer_phone'] ?? null, 'address' => $data['customer_address'] ?? null],
-                'seller' => $data['seller'], 'terms' => $data['terms'] ?? null, 'validity_days' => (int) $data['validity_days'], 'tax_basis_points' => (int) $data['tax_basis_points'], 'shipping_minor' => $totals['shipping'], 'totals' => $totals, 'revision' => $quote->exists ? $quote->revision + 1 : 1])->save();
+            $sellerId = array_key_exists('seller_id', $data) ? $data['seller_id'] : $quote->seller_id;
+            $sellerName = $sellerId ? CommercialSeller::findOrFail($sellerId)->name : ($data['seller'] ?? $quote->seller ?? '');
+            $quote->fill(['commercial_client_id' => array_key_exists('client_id', $data) ? $data['client_id'] : $quote->commercial_client_id, 'customer' => ['name' => $data['customer_name'], 'company' => $data['customer_company'] ?? null, 'email' => $data['customer_email'], 'phone' => $data['customer_phone'] ?? null, 'address' => $data['customer_address'] ?? null, 'country' => $data['customer_country'] ?? null],
+                'seller_id' => $sellerId, 'seller' => $sellerName, 'terms' => $data['terms'] ?? null, 'validity_days' => (int) $data['validity_days'], 'tax_basis_points' => (int) $data['tax_basis_points'], 'shipping_minor' => $totals['shipping'], 'totals' => $totals, 'revision' => $quote->exists ? $quote->revision + 1 : 1])->save();
             $quote->items()->delete();
             $quote->items()->createMany($lines);
             $this->audit->record('quote.saved', 'quote', $quote->uuid, after: ['revision' => $quote->revision, 'lines' => count($lines)], actorId: $actorId);
+            if ($previousSeller !== $quote->seller_id) {
+                $this->audit->record('quote.seller_assigned', 'quote', $quote->uuid, before: ['seller_id' => $previousSeller], after: ['seller_id' => $quote->seller_id], actorId: $actorId);
+            }
 
             return $quote;
         });
@@ -101,7 +111,9 @@ final class QuoteService
                 $uuid = (string) Str::uuid();
                 app(QuotePhotos::class)->freeze($quote, $uuid, $lines, $assetPaths);
                 $snapshot = ['folio' => $quote->folio, 'version' => $version, 'issued_at' => now()->toIso8601String(), 'valid_until' => now()->addDays($quote->validity_days)->toDateString(),
-                    'issuer' => $settings, 'customer' => $quote->customer, 'seller' => $quote->seller, 'terms' => $quote->terms, 'tax_basis_points' => $quote->tax_basis_points, 'items' => $lines, 'totals' => $totals, 'calculation_version' => 'legacy_v1'];
+                    'issuer' => $settings, 'customer' => $quote->customer, 'client_id' => $quote->commercial_client_id, 'seller' => $quote->seller, 'seller_id' => $quote->seller_id, 'seller_original_name' => $quote->seller_original_name,
+                    'source_request' => $quote->sourceRequest?->only(['uuid', 'created_at', 'has_seller', 'seller_name', 'message']),
+                    'terms' => $quote->terms, 'tax_basis_points' => $quote->tax_basis_points, 'items' => $lines, 'totals' => $totals, 'calculation_version' => $quote->calculation_version];
                 $bytes = $this->pdf->render($snapshot);
                 $path = 'quotes/'.$quote->uuid.'/'.$uuid.'.pdf';
                 if (! Storage::disk('local')->put($path, $bytes)) {

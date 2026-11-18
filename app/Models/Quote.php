@@ -13,7 +13,7 @@ class Quote extends Model
 
     protected function casts(): array
     {
-        return ['customer' => 'array', 'totals' => 'array', 'revision' => 'integer', 'shipping_minor' => 'integer', 'tax_basis_points' => 'integer'];
+        return ['customer' => 'array', 'totals' => 'array', 'revision' => 'integer', 'seller_id' => 'integer', 'shipping_minor' => 'integer', 'tax_basis_points' => 'integer'];
     }
 
     public function uniqueIds(): array
@@ -39,6 +39,16 @@ class Quote extends Model
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function sellerRecord()
+    {
+        return $this->belongsTo(CommercialSeller::class, 'seller_id');
+    }
+
+    public function sourceRequest()
+    {
+        return $this->hasOne(QuoteRequest::class);
     }
 
     public function getLabelAttribute(): string

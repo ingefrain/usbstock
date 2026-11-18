@@ -1,0 +1,3 @@
+@props(['name' => 'arrow'])
+@php($shapes = ['arrow'=>'M5 12h14m-6-6 6 6-6 6','search'=>'m16 16 4 4M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0','bag'=>'M5 7h14l1 14H4L5 7ZM8 8V6a4 4 0 0 1 8 0v2','menu'=>'M4 6h16M4 12h16M4 18h16','close'=>'m6 6 12 12M6 18 18 6','plus'=>'M12 5v14M5 12h14','check'=>'m5 12 4 4L19 6','sliders'=>'M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-8 0v6'])
+<svg {{ $attributes->class('icon') }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $shapes[$name] ?? $shapes['arrow'] }}"/></svg>

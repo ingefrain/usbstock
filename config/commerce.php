@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'seller_cookie_days' => (int) env('COMMERCE_SELLER_COOKIE_DAYS', 90),
     'catalog_block_size' => 24,
     'notify_email' => env('COMMERCE_NOTIFY_EMAIL'),
     'telegram_enabled' => (bool) env('SUPPLIER_TELEGRAM_ENABLED', false),

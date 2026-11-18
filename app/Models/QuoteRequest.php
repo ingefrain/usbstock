@@ -13,7 +13,7 @@ class QuoteRequest extends Model
 
     protected function casts(): array
     {
-        return ['customer' => 'array', 'items' => 'array'];
+        return ['customer' => 'array', 'items' => 'array', 'has_seller' => 'boolean', 'revision' => 'integer', 'seller_id' => 'integer', 'seller_confirmed_at' => 'datetime'];
     }
 
     public function uniqueIds(): array
@@ -29,5 +29,10 @@ class QuoteRequest extends Model
     public function quote()
     {
         return $this->belongsTo(Quote::class);
+    }
+
+    public function seller()
+    {
+        return $this->belongsTo(CommercialSeller::class, 'seller_id');
     }
 }

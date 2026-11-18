@@ -26,7 +26,7 @@ class QuoteDesignsTest extends TestCase
                 $snapshot = $designs->fixture($count);
                 $this->assertSame($snapshot['totals'], app(QuoteCalculator::class)->calculate($snapshot['items'], 1600, 25000));
                 $html = $designs->html($concept, $snapshot);
-                $this->assertStringContainsString('width:210mm', $html);
+                $this->assertStringContainsString('width:215.9mm', $html);
                 $this->assertStringContainsString('DATOS FICTICIOS', $html);
                 $this->assertStringContainsString('border-radius:', $html);
                 $this->assertStringNotContainsString('src="http', $html);
@@ -41,6 +41,11 @@ class QuoteDesignsTest extends TestCase
                 $reader = new Mpdf(['tempDir' => storage_path('framework/testing/mpdf')]);
                 $pages = $reader->setSourceFile($path.'.pdf');
                 $this->assertGreaterThan(0, $pages);
+                for ($page = 1; $page <= $pages; $page++) {
+                    $size = $reader->getTemplateSize($reader->importPage($page));
+                    $this->assertEqualsWithDelta(215.9, $size['width'], .02);
+                    $this->assertEqualsWithDelta(279.4, $size['height'], .02);
+                }
                 $this->assertLessThanOrEqual($count === 1 ? 1 : $count + 6, $pages, 'Unexpected pagination explosion: '.$concept.'-'.$count);
                 if ($count === 35) {
                     $this->assertGreaterThan(3, $pages);
@@ -72,6 +77,6 @@ class QuoteDesignsTest extends TestCase
         $snapshot['customer']['name'] = '<script>secret</script>';
         $html = app(QuoteDesigns::class)->html('a', $snapshot);
         $this->assertStringContainsString('&lt;script&gt;', $html);
-        $this->assertSame('usbstock-1', QuotePdf::VERSION);
+        $this->assertSame('usbstock-2-letter', QuotePdf::VERSION);
     }
 }

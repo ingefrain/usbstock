@@ -16,7 +16,13 @@ final class StorefrontController
 {
     public function home()
     {
-        return view('shop.home', ['products' => app(PublicCatalog::class)->query([])->orderByDesc('products.id')->limit(6)->get()]);
+        $products = app(PublicCatalog::class)->query([])->orderByRaw('CASE WHEN capacity_gb IS NULL THEN 1 ELSE 0 END')->orderByDesc('products.id')->limit(4)->get();
+        $categories = ProductCategory::where('is_published', true)->orderBy('name')->limit(4)->get();
+        foreach ($categories as $category) {
+            $category->setRelation('previewProduct', app(PublicCatalog::class)->query([])->where('product_category_id', $category->id)->whereHas('image')->orderBy('products.id')->first());
+        }
+
+        return view('shop.home', compact('products', 'categories'));
     }
 
     public function catalog(Request $request, PublicCatalog $catalog, ?string $category = null)

@@ -52,7 +52,7 @@ class CommercePublicTest extends TestCase
         $this->post(route('shop.cart.add'), ['variant' => $variant->uuid, 'quantity' => 501])->assertSessionHasErrors('quantity');
         $this->post(route('shop.cart.add'), ['variant' => $variant->uuid, 'quantity' => 50])->assertRedirect(route('shop.request'));
         $this->get(route('shop.request'))->assertOk()->assertSee('50 piezas');
-        $data = ['name' => 'Cliente público de prueba', 'email' => 'cliente@example.test', 'phone' => '5555555555', 'request_key' => session('quote_request_key'), 'website' => ''];
+        $data = ['name' => 'Cliente público de prueba', 'email' => 'cliente@example.test', 'phone' => '5555555555', 'has_seller' => 0, 'request_key' => session('quote_request_key'), 'website' => ''];
         $this->post(route('shop.request.submit'), $data)->assertRedirect()->assertSessionHas('request_received');
         $this->post(route('shop.request.submit'), $data)->assertRedirect();
         $this->assertDatabaseCount('quote_requests', 1);
@@ -75,7 +75,7 @@ class CommercePublicTest extends TestCase
         $product->update(['is_published' => true]);
         $variant = ProductVariant::where('sku', 'USB1-A')->sole();
         $this->post(route('shop.cart.add'), ['variant' => $variant->uuid, 'quantity' => 50]);
-        $data = ['name' => 'Prueba', 'email' => 'cliente@example.test', 'phone' => '5555555555', 'request_key' => session('quote_request_key')];
+        $data = ['name' => 'Prueba', 'email' => 'cliente@example.test', 'phone' => '5555555555', 'has_seller' => 0, 'request_key' => session('quote_request_key')];
         $this->post(route('shop.request.submit'), $data + ['website' => 'bot'])->assertSessionHasErrors('website');
         $variant->update(['stock' => 0]);
         $this->post(route('shop.request.submit'), $data)->assertSessionHasErrors('cart');

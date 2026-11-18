@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CommercialConfigController;
+use App\Http\Controllers\Admin\CommercialSellerController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\QuoteController;
 use App\Http\Controllers\Admin\QuoteDesignController;
@@ -20,6 +21,9 @@ Route::get('producto/{slug}/miniatura', [StorefrontController::class, 'thumbnail
 Route::get('contacto', [StorefrontController::class, 'info'])->name('shop.info');
 Route::get('sitemap.xml', [StorefrontController::class, 'sitemap'])->name('shop.sitemap');
 Route::get('solicitar-cotizacion', [PublicQuoteRequestController::class, 'index'])->name('shop.request');
+Route::get('solicitud-recibida', [PublicQuoteRequestController::class, 'received'])->name('shop.request.received');
+Route::post('nueva-solicitud', [PublicQuoteRequestController::class, 'restart'])->name('shop.request.restart');
+Route::delete('recordar-vendedor', [PublicQuoteRequestController::class, 'forgetSeller'])->name('shop.seller.forget');
 Route::post('seleccion', [PublicQuoteRequestController::class, 'add'])->middleware('throttle:60,1,commerce-cart')->name('shop.cart.add');
 Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remove'])->name('shop.cart.remove');
 Route::post('solicitar-cotizacion', [PublicQuoteRequestController::class, 'submit'])->middleware('throttle:5,10,commerce-request')->name('shop.request.submit');
@@ -28,6 +32,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'ac
     Route::get('pdf-designs', [QuoteDesignController::class, 'index'])->name('pdf-designs.index');
     Route::get('pdf-designs/{concept}', [QuoteDesignController::class, 'preview'])->name('pdf-designs.preview');
     Route::get('quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
+    Route::post('quote-requests/{request}/seller', [QuoteRequestController::class, 'assignSeller'])->name('quote-requests.seller');
+    Route::get('commercial-sellers', [CommercialSellerController::class, 'index'])->name('sellers.index');
+    Route::patch('commercial-sellers/{seller}/status', [CommercialSellerController::class, 'status'])->name('sellers.status');
+    Route::post('commercial-sellers/{seller?}', [CommercialSellerController::class, 'save'])->name('sellers.save');
     Route::post('quote-requests/{request}/convert', [QuoteRequestController::class, 'convert'])->name('quote-requests.convert');
     Route::post('quote-requests/{request}/status', [QuoteRequestController::class, 'status'])->name('quote-requests.status');
     Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
