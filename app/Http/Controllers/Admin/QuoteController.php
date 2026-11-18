@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Commerce\CommerceAccess;
 use App\Commerce\QuoteService;
 use App\Models\CommercialClient;
-use App\Models\CommercialSetting;
 use App\Models\CommercialSeller;
+use App\Models\CommercialSetting;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
@@ -32,7 +32,7 @@ final class QuoteController
         $this->access();
         $data = $request->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|in:draft,issued']);
 
-        return view('admin.commerce.quotes', ['quotes' => Quote::when($data['q'] ?? null, fn ($q, $s) => $q->where('folio', 'like', '%'.$s.'%'))->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))->latest()->paginate(25)->withQueryString()]);
+        return view('admin.commerce.quotes', ['quotes' => Quote::when($data['q'] ?? null, fn ($q, $s) => $q->where('folio', 'like', '%'.$s.'%'))->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))->latest()->adminPaginate(100)]);
     }
 
     public function create(Request $request)

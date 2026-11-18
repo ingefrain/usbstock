@@ -74,7 +74,7 @@
                 @endforeach
                 </tbody>
             </table></div>
-            <div class="pagination-wrap">{{ $users->links() }}</div>
         @endif
+        <div class="pagination-wrap">{{ $users->links() }}</div>
     </section>
 @endsection

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ asset('assets/commerce-admin.css') }}?v={{ filemtime(public_path('assets/commerce-admin.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/usb-tokens.css') }}?v={{ filemtime(public_path('assets/usb-tokens.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/commerce-workspace.css') }}?v={{ filemtime(public_path('assets/commerce-workspace.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/base-admin/pagination.css') }}?v={{ filemtime(public_path('assets/base-admin/pagination.css')) }}">
     <link rel="preload" href="{{ asset('brand/fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ asset('assets/usb-motion.css') }}?v={{ filemtime(public_path('assets/usb-motion.css')) }}">
 </head>

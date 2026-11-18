@@ -23,7 +23,7 @@ final class ProductController
             ->when($filters['q'] ?? null, fn ($q, $text) => $q->where(fn ($s) => $s->where('external_key', 'like', '%'.$text.'%')->orWhere('supplier_description', 'like', '%'.$text.'%')->orWhere('custom_name', 'like', '%'.$text.'%')->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', '%'.$text.'%'))))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('is_published', $status === 'published'))
             ->when($filters['photo'] ?? null, fn ($q, $photo) => $photo === 'missing' ? $q->whereDoesntHave('image') : $q->whereHas('image'))
-            ->orderBy('external_key')->paginate(24)->withQueryString();
+            ->orderBy('external_key')->adminPaginate(100);
 
         return view('admin.commerce.products', compact('products', 'filters'));
     }

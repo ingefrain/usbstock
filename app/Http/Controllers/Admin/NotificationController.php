@@ -48,7 +48,7 @@ class NotificationController extends Controller
             });
         }
 
-        $messages = $query->latest('created_at')->paginate(20)->withQueryString();
+        $messages = $query->latest('created_at')->adminPaginate(100);
         $messages->getCollection()->each(function (OutboxMessage $message) use ($transports): void {
             $message->setAttribute('masked_recipient', $this->maskedRecipientFor($transports, $message->channel, $message->recipient));
         });

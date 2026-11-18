@@ -17,7 +17,7 @@ final class SupplierSyncController
     {
         CommerceAccess::authorize('supplier_sync.view');
 
-        return view('admin.commerce.sync-index', ['runs' => SupplierSyncRun::with('notifications.outbox')->latest('id')->paginate(20), 'pending' => SupplierSyncRun::where('status', 'review')->count()]);
+        return view('admin.commerce.sync-index', ['runs' => SupplierSyncRun::with('notifications.outbox')->latest('id')->adminPaginate(50), 'pending' => SupplierSyncRun::where('status', 'review')->count()]);
     }
 
     public function store(Request $request, SupplierSync $sync)

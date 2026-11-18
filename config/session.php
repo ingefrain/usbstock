@@ -4,6 +4,12 @@ use Illuminate\Support\Str;
 
 return [
 
+    // Serialize the whole session read/modify/save cycle, including parallel page reads.
+    // Other sessions remain independent. Required for cart revisions and list preferences.
+    'block' => true,
+    'block_lock_seconds' => 60,
+    'block_wait_seconds' => 10,
+
     /*
     |--------------------------------------------------------------------------
     | Default Session Driver

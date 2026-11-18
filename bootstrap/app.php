@@ -1,5 +1,6 @@
 <?php
 
+use App\Commerce\CartJsonErrors;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureSessionIsCurrent;
 use App\Http\Middleware\RecordUserActivity;
@@ -45,5 +46,5 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn (Request $request): string => route('admin.profile.edit'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(fn (Throwable $error, Request $request) => CartJsonErrors::render($error, $request));
     })->create();

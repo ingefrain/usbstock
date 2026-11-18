@@ -129,6 +129,6 @@ class CommerceAdminTest extends TestCase
             }
         }
         $views['quote-editor']->assertSee('data-add-quote-line', false)->assertSee('TEST1-A');
-        $views['product']->assertSee('Agregar a mi solicitud')->assertDontSee('10.00');
+        $views['product']->assertSee('Agregar a mi cotización')->assertDontSee('10.00');
     }
 }

@@ -36,7 +36,7 @@ class UserController extends Controller
         ))->when($filters['role'] ?? null, fn ($query, int $roleId) => $query->whereHas(
             'roles',
             fn ($query) => $query->where('roles.id', $roleId)
-        ))->orderBy('name')->paginate(15)->withQueryString();
+        ))->orderBy('name')->adminPaginate(200);
 
         return view('admin.users.index', [
             'users' => $users,

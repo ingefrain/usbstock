@@ -32,7 +32,7 @@
                 @endforeach
                 </tbody>
             </table></div>
-            <div class="pagination-wrap">{{ $messages->links() }}</div>
         @endif
+        <div class="pagination-wrap">{{ $messages->links() }}</div>
     </section>
 @endsection

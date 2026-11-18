@@ -47,7 +47,7 @@
     });
     document.addEventListener('submit', event => {
         const form = event.target;
-        if (event.defaultPrevented || !form.matches('form') || form.method.toLowerCase() !== 'post' || form.matches('[data-status-toggle]')) return;
+        if (event.defaultPrevented || !form.matches('form') || form.method.toLowerCase() !== 'post' || form.matches('[data-status-toggle], [data-cart-action]')) return;
         if (form.dataset.visualBusy) { event.preventDefault(); return; }
         form.dataset.visualBusy = 'true';
         const button = event.submitter;

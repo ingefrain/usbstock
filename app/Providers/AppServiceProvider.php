@@ -15,9 +15,12 @@ use App\Policies\CatalogPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\LocationPolicy;
 use App\Policies\OrganizationPolicy;
+use App\Support\AdminPagination;
 use App\Support\BasePermissions;
 use App\Support\ImpersonationManager;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,6 +39,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::defaultView('pagination.admin');
+        Paginator::defaultSimpleView('pagination.admin-simple');
+        foreach ([Builder::class, \Illuminate\Database\Query\Builder::class] as $builder) {
+            $builder::macro('adminPaginate', function (int $maximum = 200) {
+                return AdminPagination::paginate($this, $maximum);
+            });
+        }
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(Catalog::class, CatalogPolicy::class);
         Gate::policy(CatalogItem::class, CatalogItemPolicy::class);

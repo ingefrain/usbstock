@@ -81,11 +81,11 @@ class CatalogsTest extends TestCase
         $this->get(route('admin.catalogs.items.edit', [$catalog, $item]))->assertOk()->assertSee('<strong>Descripción de clases</strong>', false);
         $this->get(route('admin.catalogs.items.index', $catalog).'?q=A-1&status=active')->assertOk()->assertSee('Clases')->assertDontSee('Otro');
         $this->get(route('admin.catalogs.items.index', $catalog))->assertOk()->assertSeeInOrder(['Clases', 'Otro']);
-        foreach (range(1, 15) as $i) {
+        foreach (range(1, 25) as $i) {
             CatalogItem::factory()->for($catalog)->create(['name' => 'Fila '.$i, 'slug' => 'fila-'.$i]);
         }
         $this->get(route('admin.catalogs.items.index', $catalog).'?q=Fila&status=active')->assertOk()->assertSee('Fila 15');
-        $this->get(route('admin.catalogs.items.index', $catalog).'?status=active')->assertOk()->assertSee('status=active&amp;page=2', false);
+        $this->get(route('admin.catalogs.items.index', $catalog).'?status=active')->assertOk()->assertSee('status=active&amp;per_page=20&amp;page=2', false);
 
         $this->put(route('admin.catalogs.items.update', [$catalog, $item]), ['name' => 'Clases actualizadas', 'is_active' => 0])->assertRedirect();
         $this->assertTrue($item->refresh()->is_active);

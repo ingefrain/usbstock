@@ -31,7 +31,7 @@
                     </tr>
                 @endforeach
             </tbody></table></div>
-            <div class="pagination-wrap">{{ $roles->links() }}</div>
         @endif
+        <div class="pagination-wrap">{{ $roles->links() }}</div>
     </section>
 @endsection

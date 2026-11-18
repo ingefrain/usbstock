@@ -1,0 +1,19 @@
+/* Independent of Tailwind: shared across every administrative paginator. */
+.admin-pagination{display:grid;gap:16px;border-top:1px solid var(--line,#dfe2e7);padding-top:20px;margin-top:20px;min-width:0;color:#303946;font-size:13px}
+.admin-pagination .admin-pagination-info{margin:0;color:#526071}
+.admin-pagination .admin-pagination-pages{display:flex;align-items:center;justify-content:flex-start;gap:6px;flex-wrap:wrap}
+.admin-pagination .page-numbers{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.admin-pagination .page-control,.admin-pagination .page-number,.admin-pagination .page-gap{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:36px;min-width:36px;padding:6px 9px;border:1px solid #ccd2dc;border-radius:7px;text-decoration:none;color:#344256;background:#fff;font-weight:650;line-height:1.2;box-sizing:border-box}
+.admin-pagination .page-gap{border-color:transparent;min-width:20px;padding-inline:2px}
+.admin-pagination .is-current{background:#bd1239;border-color:#bd1239;color:#fff}
+.admin-pagination [aria-disabled=true]{color:#687385;background:#f4f5f7;border-color:#e1e4e9;cursor:default}
+.admin-pagination a:hover{background:#fff0f4;border-color:#bd1239;color:#9d0e2f}
+.admin-pagination :is(a,select,input,button):focus-visible{outline:3px solid #bd1239;outline-offset:3px}
+.admin-pagination svg{display:block;width:18px;height:18px;max-width:18px;flex:0 0 18px}
+.admin-pagination-preferences{display:flex;align-items:end;flex-wrap:wrap;gap:16px 24px}
+.admin-pagination-preferences form{display:flex;align-items:end;gap:8px;margin:0;min-width:0}
+.admin-pagination-preferences label{display:grid;gap:6px;font-size:12px;color:#344256}
+.admin-pagination-preferences select,.admin-pagination-preferences input{width:auto;min-width:80px;max-width:140px;height:38px;margin:0;padding:6px 12px;border:1px solid #aab4c2;border-radius:7px;background:#fff;color:#202a38;font:inherit;box-sizing:border-box}
+.admin-pagination-preferences button{min-height:38px;padding:8px 13px;border:1px solid #bac2ce;border-radius:7px;background:#fff;color:#344256;font:inherit;font-weight:650;cursor:pointer}
+.admin-pagination-preferences button:hover{background:#f0f2f6;border-color:#8793a4}
+@media(max-width:600px){.admin-pagination .admin-pagination-pages{gap:5px}.admin-pagination .page-control{font-size:11px;min-height:40px;padding:7px}.admin-pagination .page-numbers{order:1;flex-basis:100%;margin-top:4px}.admin-pagination .page-number{min-height:40px;min-width:40px}.admin-pagination-preferences{gap:14px}.admin-pagination-preferences form{flex:1 1 140px}.admin-pagination-preferences label{flex:1}.admin-pagination-preferences select{max-width:none;width:100%}}

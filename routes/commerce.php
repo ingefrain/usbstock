@@ -25,7 +25,8 @@ Route::get('solicitud-recibida', [PublicQuoteRequestController::class, 'received
 Route::post('nueva-solicitud', [PublicQuoteRequestController::class, 'restart'])->name('shop.request.restart');
 Route::delete('recordar-vendedor', [PublicQuoteRequestController::class, 'forgetSeller'])->name('shop.seller.forget');
 Route::post('seleccion', [PublicQuoteRequestController::class, 'add'])->middleware('throttle:60,1,commerce-cart')->name('shop.cart.add');
-Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remove'])->name('shop.cart.remove');
+Route::get('seleccion/estado', [PublicQuoteRequestController::class, 'state'])->middleware('throttle:120,1,commerce-cart-state')->name('shop.cart.state');
+Route::delete('seleccion/{variant}', [PublicQuoteRequestController::class, 'remove'])->middleware('throttle:60,1,commerce-cart')->name('shop.cart.remove');
 Route::post('solicitar-cotizacion', [PublicQuoteRequestController::class, 'submit'])->middleware('throttle:5,10,commerce-request')->name('shop.request.submit');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'impersonation', 'account.active', 'session.current'])->group(function (): void {

@@ -33,7 +33,7 @@ final class CommercialConfigController
     {
         CommerceAccess::authorize('clients.manage');
 
-        return view('admin.commerce.clients', ['clients' => CommercialClient::orderBy('name')->paginate(20)]);
+        return view('admin.commerce.clients', ['clients' => CommercialClient::orderBy('name')->adminPaginate(200)]);
     }
 
     public function saveClient(Request $request, AdminAuditLogger $audit, ?CommercialClient $client = null)

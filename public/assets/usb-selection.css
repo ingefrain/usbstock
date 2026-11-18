@@ -1,0 +1,45 @@
+/* Permanently reserved space prevents layout shifts when the first line is added. */
+.shop { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+.shop [hidden] { display: none !important; }
+.shop .quote-tab { color: #fff; }
+html:has(.shop) { scroll-padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+.shop :is(input, textarea, select, button, .button) { scroll-margin-bottom: 100px; }
+.quote-tab { position: fixed; z-index: 35; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 12px 18px; color: #fff; background: #192b2b; border: 1px solid #4c6663; border-radius: 14px; box-shadow: 0 5px 22px #10242224; font-size: 14px; font-weight: 750; text-decoration: none; transition: transform .18s ease, background .18s ease; }
+.quote-tab svg { width: 20px; height: 20px; flex: 0 0 20px; }
+.quote-tab b { display: grid; place-items: center; min-width: 24px; min-height: 24px; padding: 2px 6px; border-radius: 30px; background: #def5bf; color: #172b23; font-size: 12px; }
+.quote-tab:hover { background: #304846; transform: translateY(-2px); }
+.quote-tab:focus-visible { outline: 3px solid #16816b; outline-offset: 4px; }
+.quote-tab.is-confirmed { animation: quote-confirm .45s ease; }
+.cart-feedback { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: #eef7e9; border: 1px solid #a7c697; color: #183b25; box-shadow: 0 4px 22px #162b2520; font-size: 14px; line-height: 1.5; }
+.cart-feedback.is-error { color: #702b20; background: #fff3ed; border-color: #d4ab9e; }
+.cart-feedback button { margin-left: auto; flex-shrink: 0; display: grid; place-items: center; min-width: 40px; min-height: 40px; padding: 8px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 8px; cursor: pointer; }
+.cart-feedback svg { width: 18px; height: 18px; }
+.is-cart-pending { opacity: .65; cursor: progress !important; }
+.shop [data-cart-action][aria-busy="true"] { cursor: progress; }
+.quote-layout.is-empty { grid-template-columns: 1fr; }
+.selection-panel { scroll-margin-top: 110px; min-width: 0; }
+.selection-item > div { min-width: 0; }
+.selection-item h3, .selection-item p { overflow-wrap: anywhere; }
+.selection-actions { flex-wrap: wrap; }
+.selection-edit .field { margin-top: 14px; }
+.selection-edit .field input { width: 100%; min-width: 0; }
+.cart-keyboard .quote-tab, .shop:has(dialog[open]) .quote-tab, .shop:has([aria-modal="true"]:not([hidden])) .quote-tab { visibility: hidden; pointer-events: none; }
+.cart-keyboard .cart-feedback { bottom: auto; top: 12px; }
+@media (max-width: 1099px) {
+    .shop:has(textarea:focus, select:focus, input:not([type="radio"]):not([type="checkbox"]):focus) .quote-tab { visibility: hidden; pointer-events: none; }
+}
+@keyframes quote-confirm { from { opacity: .65; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@media (min-width: 1100px) {
+    .shop { padding-bottom: 0; padding-right: 58px; }
+    .quote-tab { top: 50%; bottom: auto; right: 0; left: auto; transform: translateY(-50%); border-radius: 14px 0 0 14px; padding: 18px 12px; writing-mode: vertical-rl; min-height: 220px; width: 48px; }
+    .quote-tab b { writing-mode: horizontal-tb; }
+    .quote-tab:hover { transform: translateY(-50%) translateX(-2px); }
+    .quote-tab.is-confirmed { animation: quote-confirm-desktop .45s ease; }
+    .cart-feedback { left: auto; right: 78px; bottom: 24px; max-width: 440px; }
+    .cart-keyboard .quote-tab { visibility: visible; pointer-events: auto; }
+    .cart-keyboard .cart-feedback { top: auto; bottom: 24px; }
+    @keyframes quote-confirm-desktop { from { opacity: .65; } to { opacity: 1; } }
+}
+@media (prefers-reduced-motion: reduce) {
+    .quote-tab, .quote-tab.is-confirmed { animation: none; transition: none; }
+}

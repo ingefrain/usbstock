@@ -24,7 +24,7 @@
                     <tr><td><time datetime="{{ $event->created_at->toIso8601String() }}">{{ $event->created_at->format('d/m/Y H:i:s') }}</time></td><td>{{ $event->actor?->email ?? 'Sistema' }}</td><td>{{ str($event->action)->replace('.', ' ')->headline() }} @if(data_get($event->context, 'impersonation.active'))<span class="badge badge-warning">Impersonación</span>@endif</td><td>{{ ucfirst($event->entity_type) }} #{{ $event->entity_id }}</td><td><details><summary>Ver valores</summary><div class="audit-values"><strong>Anterior</strong><pre>{{ json_encode($event->before, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '—' }}</pre><strong>Nuevo</strong><pre>{{ json_encode($event->after, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '—' }}</pre>@if(data_get($event->context, 'impersonation.active'))<strong>Impersonación</strong><pre>{{ json_encode($event->context['impersonation'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>@endif</div></details></td></tr>
                 @endforeach
             </tbody></table></div>
-            <div class="pagination-wrap">{{ $events->links() }}</div>
         @endif
+        <div class="pagination-wrap">{{ $events->links() }}</div>
     </section>
 @endsection

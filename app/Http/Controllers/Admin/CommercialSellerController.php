@@ -13,7 +13,7 @@ final class CommercialSellerController
     {
         CommerceAccess::authorize('sellers.manage');
 
-        return view('admin.commerce.sellers', ['sellers' => CommercialSeller::orderBy('name')->paginate(25)]);
+        return view('admin.commerce.sellers', ['sellers' => CommercialSeller::orderBy('name')->adminPaginate(200)]);
     }
 
     public function save(Request $request, AdminAuditLogger $audit, ?CommercialSeller $seller = null)

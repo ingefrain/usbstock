@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Commerce\CommerceAccess;
 use App\Commerce\PublicQuoteRequests;
-use App\Models\QuoteRequest;
 use App\Models\CommercialSeller;
+use App\Models\QuoteRequest;
 use App\Support\AdminAuditLogger;
 use App\Support\ImpersonationManager;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ final class QuoteRequestController
 
         $filters = $http->validate(['status' => 'nullable|in:received,review,discarded,converted', 'q' => 'nullable|string|max:180']);
 
-        return view('admin.commerce.requests', ['requests' => QuoteRequest::with('seller', 'quote')->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))->when($filters['q'] ?? null, fn ($query, $term) => $query->where(fn ($q) => $q->where('seller_name', 'like', '%'.$term.'%')->orWhere('customer->name', 'like', '%'.$term.'%')))->latest()->paginate(20)->withQueryString(), 'sellers' => CommercialSeller::where('is_active', true)->orderBy('name')->get()]);
+        return view('admin.commerce.requests', ['requests' => QuoteRequest::with('seller', 'quote')->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))->when($filters['q'] ?? null, fn ($query, $term) => $query->where(fn ($q) => $q->where('seller_name', 'like', '%'.$term.'%')->orWhere('customer->name', 'like', '%'.$term.'%')))->latest()->adminPaginate(50), 'sellers' => CommercialSeller::where('is_active', true)->orderBy('name')->get()]);
     }
 
     public function convert(Request $http, QuoteRequest $request, PublicQuoteRequests $service)

@@ -24,7 +24,7 @@
                                     @endif
                                     <button class="button {{ $organization->is_active ? 'button-danger' : 'button-secondary' }} button-small" type="submit">{{ $organization->is_active ? 'Desactivar' : 'Activar' }}</button></form>@endcan</td></tr>
             @endforeach
-            </tbody></table></div><div class="pagination-wrap">{{ $organizations->links() }}</div>
-        @endif
+            </tbody></table></div>@endif
+        <div class="pagination-wrap">{{ $organizations->links() }}</div>
     </section>
 @endsection
