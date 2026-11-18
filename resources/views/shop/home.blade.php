@@ -1,18 +1,18 @@
 @extends('layouts.shop')
 @section('content')
 <section class="editorial-hero wrap">
-    <div class="hero-copy" data-reveal>
+    <div class="hero-copy">
         <span class="eyebrow"><span class="brand-dash"></span> Memorias USB · Ideas con identidad</span>
-        <h1>Tu marca.<br><em>En sus manos.</em></h1>
-        <p>Pequeñas memorias. Grandes ideas. Encuentra la forma, el color y la capacidad para llevar tu marca más lejos.</p>
-        <div class="hero-actions"><a class="button primary" href="{{ route('shop.catalog') }}">Encuentra tu USB <x-shop.icon/></a><a class="text-link" href="#como-cotizar">Cómo cotizar <span aria-hidden="true">↘</span></a></div>
-        <div class="hero-foot"><span class="mini-symbol" aria-hidden="true">↗</span><span>De tu primera idea<br><strong>a una cotización a tu medida.</strong></span></div>
+        <h1 data-hero-step="1">Tu marca.<br><em>En sus manos.</em></h1>
+        <p data-hero-step="2">Pequeñas memorias. Grandes ideas. Encuentra la forma, el color y la capacidad para llevar tu marca más lejos.</p>
+        <div class="hero-actions" data-hero-step="3"><a class="button primary" href="{{ route('shop.catalog') }}">Encuentra tu USB <x-shop.icon/></a><a class="text-link" href="#como-cotizar">Cómo cotizar <span aria-hidden="true">↘</span></a></div>
+        <div class="hero-foot" data-hero-step="5"><span class="mini-symbol" aria-hidden="true">↗</span><span>De tu primera idea<br><strong>a una cotización a tu medida.</strong></span></div>
     </div>
-    <div class="hero-stage" data-reveal>
-        <div class="stage-rings" aria-hidden="true"></div><span class="stage-word" aria-hidden="true">USB.</span>
-        <span class="stage-caption">DISEÑADA PARA LLEVAR TU MARCA</span>
-        <img class="hero-product" src="{{ asset('brand/catalog-hero.jpg') }}" width="640" height="640" fetchpriority="high" alt="Memoria USB giratoria azul, fotografía de referencia">
-        <div class="stage-detail"><span class="detail-cross" aria-hidden="true">+</span><span>Un clásico.<br><strong>Tu propia identidad.</strong></span><span class="detail-index" aria-hidden="true">01 / USB</span></div>
+    <div class="hero-stage">
+        <div class="stage-rings" data-hero-step="5" aria-hidden="true"></div><span class="stage-word" data-hero-step="5" aria-hidden="true">USB.</span>
+        <span class="stage-caption" data-hero-step="5">DISEÑADA PARA LLEVAR TU MARCA</span>
+        <img class="hero-product" data-hero-step="4" src="{{ asset('brand/catalog-hero.jpg') }}" width="640" height="640" fetchpriority="high" alt="Memoria USB giratoria azul, fotografía de referencia">
+        <div class="stage-detail" data-hero-step="5"><span class="detail-cross" aria-hidden="true">+</span><span>Un clásico.<br><strong>Tu propia identidad.</strong></span><span class="detail-index" aria-hidden="true">01 / USB</span></div>
     </div>
 </section>
 <div class="discovery-bar wrap" data-reveal>

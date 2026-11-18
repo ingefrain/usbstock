@@ -2,9 +2,9 @@
 
 namespace App\Commerce;
 
-use App\Models\CommercialSetting;
 use App\Models\CommercialClient;
 use App\Models\CommercialSeller;
+use App\Models\CommercialSetting;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteRequest;
@@ -39,8 +39,8 @@ final class PublicQuoteRequests
             $items = [];
             foreach ($cart as $id => $quantity) {
                 $v = ProductVariant::with('product.category')->find($id);
-                if (! is_int($quantity) || ! $v || ! $v->provider_active || ! $v->is_enabled || ! $v->product->isPublic() || $quantity < 50 || $quantity > $v->stock) {
-                    throw ValidationException::withMessages(['cart' => 'Cambió la disponibilidad de una variante. Revisa tu selección.']);
+                if ($problem = CommercialAvailability::problem($v, $quantity)) {
+                    throw ValidationException::withMessages(['cart' => $problem.' Tu selección se conserva para revisarla.']);
                 }
                 $items[] = ['variant_id' => $v->id, 'sku' => $v->sku, 'name' => $v->product->name, 'description' => $v->product->description, 'color' => $v->color, 'capacity_gb' => $v->product->capacity_gb, 'quantity' => $quantity, 'printing' => $printing[$id] ?? null];
             }
@@ -61,6 +61,12 @@ final class PublicQuoteRequests
                 return $request->quote;
             }
             abort_if($request->status === 'discarded', 409);
+            foreach ($request->items as $item) {
+                $variant = ProductVariant::with('product.category')->find($item['variant_id']);
+                if ($problem = CommercialAvailability::problem($variant, $item['quantity'])) {
+                    throw ValidationException::withMessages(['cart' => $item['sku'].': '.$problem.' La solicitud original no se ha modificado.']);
+                }
+            }
             $seller = $request->seller;
             if ($seller && ! $seller->is_active) {
                 throw ValidationException::withMessages(['seller_id' => 'El vendedor confirmado está inactivo. Revisa su asociación.']);

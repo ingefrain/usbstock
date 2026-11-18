@@ -32,6 +32,9 @@ final class CartJsonErrors
             default => 'No pudimos confirmar el cambio. Revisa tu cotización antes de intentarlo de nuevo.',
         };
         $data = ['success' => false, 'message' => $message];
+        if ($error instanceof CartAvailabilityException) {
+            $data['availability'] = ['code' => $error->maximum < CommercialAvailability::MINIMUM ? 'minimum_stock' : 'stock_exceeded', 'maximum_quantity' => $error->maximum];
+        }
         if ($status === 409 && $request->hasSession()) {
             $cart = app(PublicCart::class);
             $data['selection'] = $cart->summary($request);

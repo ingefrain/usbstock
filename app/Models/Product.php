@@ -38,6 +38,16 @@ class Product extends Model
         return $this->belongsTo(ProductCategory::class, 'product_category_id');
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(ProductCategory::class, 'product_category_assignments')->withPivot(['source', 'source_id', 'source_metadata']);
+    }
+
+    public function scopeInCategories($query, array $ids)
+    {
+        return $query->where(fn ($q) => $q->whereIn('product_category_id', $ids)->orWhereHas('categories', fn ($c) => $c->whereIn('product_categories.id', $ids)));
+    }
+
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');
@@ -78,16 +88,25 @@ class Product extends Model
 
     public function scopePublished($query)
     {
-        return $query->withCommercialDescription()->where('is_published', true)->where('provider_active', true)->where(fn ($q) => $q->whereNull('product_category_id')->orWhereHas('category', fn ($c) => $c->where('is_published', true)));
+        return $query->withCommercialDescription()->where('is_published', true)->where('provider_active', true)
+            ->where(fn ($q) => $q->whereHas('category', fn ($c) => $c->publiclyVisible())
+                ->orWhere(fn ($p) => $p->whereNull('product_category_id')->where(fn ($c) => $c->whereDoesntHave('categories')->orWhereHas('categories', fn ($cat) => $cat->publiclyVisible()))));
     }
 
     public function isPublic(): bool
     {
-        return ! $this->content_review_required && $this->is_published && $this->provider_active && (! $this->category || $this->category->is_published);
+        if ($this->content_review_required || ! $this->is_published || ! $this->provider_active) {
+            return false;
+        }
+        if ($this->category) {
+            return $this->category->isPublic();
+        }
+
+        return ! $this->categories()->exists() || $this->categories()->publiclyVisible()->exists();
     }
 
     public function scopeCatalogVisible($query)
     {
-        return $query->published()->whereHas('variants', fn ($q) => $q->where('provider_active', true)->where('is_enabled', true));
+        return $query->published()->whereHas('variants', fn ($q) => $q->commerciallyAvailable());
     }
 }

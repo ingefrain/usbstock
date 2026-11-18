@@ -9,6 +9,7 @@ use App\Models\CatalogItem;
 use App\Models\Document;
 use App\Models\Location;
 use App\Models\Organization;
+use App\Models\ProductCategory;
 use App\Models\User;
 use App\Policies\CatalogItemPolicy;
 use App\Policies\CatalogPolicy;
@@ -22,6 +23,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('components.shop.category-nav', function ($view): void {
+            $view->with('navigationCategories', ProductCategory::publiclyVisible()->whereNull('parent_id')
+                ->with(['children' => fn ($q) => $q->where('is_published', true)])
+                ->orderBy('sort_order')->orderBy('id')->get());
+        });
         Paginator::defaultView('pagination.admin');
         Paginator::defaultSimpleView('pagination.admin-simple');
         foreach ([Builder::class, \Illuminate\Database\Query\Builder::class] as $builder) {

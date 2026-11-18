@@ -46,6 +46,9 @@
         <env name="SUPPLIER_TELEGRAM_ENABLED" value="false" force="true"/>
         <env name="TELEGRAM_ENABLED" value="false" force="true"/>
         <env name="COMMERCE_NOTIFY_EMAIL" value="" force="true"/>
+        <env name="CORPORATE_CONTACTS_ENABLED" value="false" force="true"/>
+        <env name="CORPORATE_CONTACTS_KEY" value="" force="true"/>
+        <env name="CORPORATE_CONTACTS_RECORD_CLICKS" value="false" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

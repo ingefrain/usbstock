@@ -18,11 +18,20 @@ final class ProductController
     public function index(Request $request)
     {
         CommerceAccess::authorize('products.view');
-        $filters = $request->validate(['q' => 'nullable|string|max:120', 'status' => 'nullable|in:published,draft', 'photo' => 'nullable|in:missing,present']);
+        $filters = $request->validate(['q' => 'nullable|string|max:120', 'status' => 'nullable|in:published,draft', 'photo' => 'nullable|in:missing,present', 'availability' => 'nullable|in:eligible,insufficient,empty']);
         $products = Product::with('category')->withCount('variants')->withExists('image')
             ->when($filters['q'] ?? null, fn ($q, $text) => $q->where(fn ($s) => $s->where('external_key', 'like', '%'.$text.'%')->orWhere('supplier_description', 'like', '%'.$text.'%')->orWhere('custom_name', 'like', '%'.$text.'%')->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', '%'.$text.'%'))))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('is_published', $status === 'published'))
             ->when($filters['photo'] ?? null, fn ($q, $photo) => $photo === 'missing' ? $q->whereDoesntHave('image') : $q->whereHas('image'))
+            ->when($filters['availability'] ?? null, function ($q, $state): void {
+                if ($state === 'eligible') {
+                    $q->whereHas('variants', fn ($v) => $v->commerciallyAvailable());
+                } else {
+                    $q->whereDoesntHave('variants', fn ($v) => $v->commerciallyAvailable())
+                        ->when($state === 'empty', fn ($p) => $p->whereDoesntHave('variants', fn ($v) => $v->where('stock', '>', 0)),
+                            fn ($p) => $p->whereHas('variants', fn ($v) => $v->where('stock', '>', 0)));
+                }
+            })
             ->orderBy('external_key')->adminPaginate(100);
 
         return view('admin.commerce.products', compact('products', 'filters'));
@@ -31,7 +40,7 @@ final class ProductController
     public function edit(Product $product)
     {
         CommerceAccess::authorize('products.view');
-        $product->load(['variants', 'image']);
+        $product->load(['variants', 'image', 'categories.parent']);
 
         return view('admin.commerce.product', ['product' => $product, 'categories' => ProductCategory::orderBy('name')->get()]);
     }
@@ -77,7 +86,7 @@ final class ProductController
     {
         CommerceAccess::authorize('products.view');
 
-        return view('admin.commerce.categories', ['categories' => ProductCategory::withCount('products')->orderBy('name')->get()]);
+        return view('admin.commerce.categories', ['categories' => ProductCategory::withCount(['products', 'assignedProducts'])->with('parent')->orderBy('parent_id')->orderBy('sort_order')->orderBy('id')->get()]);
     }
 
     public function saveCategory(Request $request, AdminAuditLogger $audit, ?ProductCategory $category = null)
@@ -85,9 +94,12 @@ final class ProductController
         CommerceAccess::authorize('products.view');
         CommerceAccess::authorize('products.manage');
         $category ??= new ProductCategory;
-        $data = $request->validate(['name' => 'required|string|max:120', 'slug' => ['required', 'alpha_dash:ascii', 'max:140', Rule::unique('product_categories')->ignore($category->id)], 'description' => 'nullable|string|max:2000', 'is_published' => 'required|boolean']);
+        $data = $request->validate(['name' => 'required|string|max:120', 'slug' => ['required', 'alpha_dash:ascii', 'max:140', Rule::unique('product_categories')->ignore($category->id)], 'description' => 'nullable|string|max:2000', 'is_published' => 'required|boolean', 'parent_id' => ['sometimes', 'nullable', 'integer', Rule::exists('product_categories', 'id')->whereNull('parent_id')], 'sort_order' => 'sometimes|integer|min:0|max:9999']);
         DB::transaction(function () use ($category, $data, $audit): void {
             DB::table('commerce_locks')->where('id', 1)->lockForUpdate()->first();
+            if (isset($data['parent_id']) && ((int) $data['parent_id'] === $category->id || $category->children()->exists() || ProductCategory::find($data['parent_id'])?->parent_id !== null)) {
+                throw ValidationException::withMessages(['parent_id' => 'Elige una categoría raíz distinta. La navegación admite dos niveles.']);
+            }
             $category->fill($data)->save();
             DB::table('commerce_locks')->where('id', 1)->increment('catalog_revision');
             $audit->record('product_category.saved', 'product_category', $category->id, after: ['published' => $category->is_published]);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Commerce\CommercialAvailability;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -29,6 +30,11 @@ class ProductVariant extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function scopeCommerciallyAvailable($query)
+    {
+        return $query->where('provider_active', true)->where('is_enabled', true)->where('stock', '>=', CommercialAvailability::MINIMUM);
     }
 
     public function getColorAttribute(): string

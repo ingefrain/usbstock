@@ -40,11 +40,11 @@ final class PublicCart
         if (! $variant || ! $variant->provider_active || ! $variant->is_enabled || ! $variant->product->isPublic()) {
             abort($request->expectsJson() ? 409 : 404);
         }
-        if ($data['quantity'] > $variant->stock) {
+        if ($variant->stock < CommercialAvailability::MINIMUM || $data['quantity'] > $variant->stock) {
             if ($request->expectsJson()) {
-                abort(409);
+                throw new CartAvailabilityException($variant->stock);
             }
-            throw ValidationException::withMessages(['quantity' => 'La cantidad supera las existencias disponibles.']);
+            throw ValidationException::withMessages(['quantity' => CommercialAvailability::problem($variant, (int) $data['quantity'])]);
         }
         $session = $request->session();
         $receipt = $session->has('quote_request_receipt');

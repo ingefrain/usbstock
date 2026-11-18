@@ -14,17 +14,21 @@
         for (const entry of entries) {
             if (!entry.isIntersecting) continue;
             observer.unobserve(entry.target);
-            if (seen.has(entry.target)) continue;
+            if (seen.has(entry.target) || entry.target.dataset.motionSeen) continue;
             seen.add(entry.target);
-            if (stagger >= 8 || document.visibilityState !== 'visible') continue;
-            animate(entry.target, [{ opacity: .35, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }], { delay: stagger++ * 35 });
+            entry.target.dataset.motionSeen = 'true'; // Saved catalog snapshots retain this marker.
+            if (document.visibilityState !== 'visible') continue;
+            animate(entry.target, [{ opacity: .12, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }], { delay: Math.min(stagger++ * 100, 300), fill: 'backwards' });
         }
     }, { threshold: .08 }) : null;
     const observe = root => {
         if (reduced.matches || !observer) return;
         const nodes = root.matches?.('[data-reveal], .product-card') ? [root] : root.querySelectorAll('[data-reveal], .product-card');
-        for (const element of nodes) if (!seen.has(element)) observer.observe(element);
+        for (const element of nodes) if (!seen.has(element) && !element.dataset.motionSeen) observer.observe(element);
     };
+    document.querySelectorAll('[data-hero-step]').forEach(element => animate(element,
+        [{ opacity: .1, translate: '0 12px' }, { opacity: 1, translate: '0 0' }],
+        { duration: 480, delay: Number(element.dataset.heroStep) * 90, fill: 'backwards' }));
     observe(document);
     const grid = document.querySelector('[data-catalog-grid]');
     if (grid) new MutationObserver(records => records.forEach(r => r.addedNodes.forEach(n => { if (n.nodeType === 1) observe(n); }))).observe(grid, { childList: true });
@@ -32,7 +36,7 @@
     const menu = document.querySelector('.mobile-nav');
     if (menu) new MutationObserver(() => { if (!menu.hidden) animate(menu, [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 180 }); }).observe(menu, { attributes: true, attributeFilter: ['hidden'] });
     document.querySelectorAll('details').forEach(details => details.addEventListener('toggle', () => {
-        if (details.open) for (const child of [...details.children].filter(n => n.tagName !== 'SUMMARY')) animate(child, [{ opacity: .5, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 200 });
+        if (details.open) for (const child of [...details.children].filter(n => n.tagName !== 'SUMMARY')) animate(child, [{ opacity: .5, translate: '0 8px' }, { opacity: 1, translate: '0 0' }], { duration: 200 });
     }));
     document.querySelectorAll('dialog').forEach(dialog => new MutationObserver(() => {
         if (dialog.open) animate(dialog, [{ opacity: 0, transform: 'translateY(10px) scale(.985)' }, { opacity: 1, transform: 'none' }], { duration: 200 });

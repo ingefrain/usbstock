@@ -3,6 +3,7 @@
 namespace App\Commerce;
 
 use App\Models\Product;
+use App\Models\ProductCategory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Crypt;
@@ -16,7 +17,6 @@ final class PublicCatalog
             'q' => trim($data['q'] ?? ''),
             'category' => $data['category'] ?? '',
             'capacity' => isset($data['capacity']) ? (int) $data['capacity'] : null,
-            'available' => ! empty($data['available']) ? 1 : null,
         ], fn ($value) => $value !== '' && $value !== null);
     }
 
@@ -24,7 +24,8 @@ final class PublicCatalog
     {
         // Only public presentation fields; do not hydrate variant costs or all variants.
         return Product::catalogVisible()->select(['products.id', 'uuid', 'external_key', 'slug', 'custom_name', 'custom_description', 'supplier_description', 'capacity_gb'])
-            ->addSelect(['category_name' => \App\Models\ProductCategory::select('name')->whereColumn('product_categories.id', 'products.product_category_id')->limit(1)])
+            ->addSelect(['category_name' => ProductCategory::select('name')->whereColumn('product_categories.id', 'products.product_category_id')->limit(1)])
+            ->addSelect(['assigned_category_name' => ProductCategory::publiclyVisible()->select('name')->whereExists(fn ($q) => $q->selectRaw('1')->from('product_category_assignments')->whereColumn('product_category_assignments.product_category_id', 'product_categories.id')->whereColumn('product_category_assignments.product_id', 'products.id'))->orderBy('sort_order')->orderBy('id')->limit(1)])
             ->with('image')
             ->withCount(['variants as available_variants_count' => fn ($q) => $q->where('provider_active', true)->where('is_enabled', true)->where('stock', '>=', 50)])
             ->when($filters['q'] ?? null, function ($query, $search): void {
@@ -32,11 +33,10 @@ final class PublicCatalog
                 $query->where(fn ($q) => $q->whereRaw("external_key LIKE ? ESCAPE '!'", [$like])
                     ->orWhereRaw("COALESCE(custom_description, supplier_description) LIKE ? ESCAPE '!'", [$like])
                     ->orWhereRaw("custom_name LIKE ? ESCAPE '!'", [$like])
-                    ->orWhereHas('variants', fn ($v) => $v->where('provider_active', true)->where('is_enabled', true)->whereRaw("sku LIKE ? ESCAPE '!'", [$like])));
+                    ->orWhereHas('variants', fn ($v) => $v->commerciallyAvailable()->whereRaw("sku LIKE ? ESCAPE '!'", [$like])));
             })
-            ->when($filters['category'] ?? null, fn ($q, $slug) => $q->whereHas('category', fn ($c) => $c->where('slug', $slug)))
-            ->when($filters['capacity'] ?? null, fn ($q, $capacity) => $q->where('capacity_gb', $capacity))
-            ->when($filters['available'] ?? null, fn ($q) => $q->whereHas('variants', fn ($v) => $v->where('provider_active', true)->where('is_enabled', true)->where('stock', '>=', 50)));
+            ->when($filters['category'] ?? null, fn ($q, $slug) => $q->inCategories(ProductCategory::publiclyVisible()->where('slug', $slug)->first()?->branchIds() ?? []))
+            ->when($filters['capacity'] ?? null, fn ($q, $capacity) => $q->where('capacity_gb', $capacity));
     }
 
     public function block(array $filters, ?string $cursor = null): array

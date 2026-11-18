@@ -20,7 +20,7 @@ final class CatalogDataset
                 $model = 'TEST'.str_pad((string) $id, 6, '0', STR_PAD_LEFT);
                 $products[] = ['id' => $id, 'uuid' => (string) Str::uuid(), 'external_key' => $model, 'slug' => strtolower($model), 'custom_name' => 'Memoria sintética '.$model, 'supplier_description' => 'Datos ficticios para pruebas aisladas. Memoria USB con acabado metálico, lista para personalizar.', 'capacity_gb' => $i % 2 ? 16 : 32, 'product_category_id' => $category, 'is_published' => true, 'provider_active' => true, 'created_at' => now(), 'updated_at' => now()];
                 foreach (range(1, $variants) as $v) {
-                    $rows[] = ['uuid' => (string) Str::uuid(), 'product_id' => $id, 'sku' => $model.'-V'.$v, 'color_code' => 'V'.$v, 'stock' => $i % 3 ? 500 : 0, 'supplier_price_minor' => 987654, 'supplier_description' => 'Variante ficticia', 'provider_active' => true, 'is_enabled' => true, 'created_at' => now(), 'updated_at' => now()];
+                    $rows[] = ['uuid' => (string) Str::uuid(), 'product_id' => $id, 'sku' => $model.'-V'.$v, 'color_code' => 'V'.$v, 'stock' => 500, 'supplier_price_minor' => 987654, 'supplier_description' => 'Variante ficticia', 'provider_active' => true, 'is_enabled' => true, 'created_at' => now(), 'updated_at' => now()];
                 }
             }
             DB::table('products')->insert($products);

@@ -2,6 +2,7 @@
 const menu = document.querySelector('.shop .mobile-menu');
 const mobileNav = document.querySelector('.shop .mobile-nav');
 if (menu && mobileNav) {
+    document.body.classList.add('navigation-ready');
     menu.hidden = false;
     mobileNav.hidden = true;
     menu.addEventListener('click', () => {
@@ -31,6 +32,8 @@ if (sellerField) {
     update();
 }
 document.querySelectorAll('[data-product-selection]').forEach(form => {
+    const initial = form.querySelector('[name="variant"]:checked');
+    if (initial) form.elements.quantity.max = initial.dataset.stock;
     form.addEventListener('change', event => {
         if (event.target.name === 'variant') form.elements.quantity.max = event.target.dataset.stock;
     });

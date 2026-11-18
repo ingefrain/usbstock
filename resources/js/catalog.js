@@ -86,6 +86,20 @@ if (root && window.fetch && window.AbortController) {
             });
             if (replace) grid.replaceChildren();
             if (replace || added) grid.append(template.content);
+            if (replace && Array.isArray(data.capacities)) {
+                let field = form.querySelector('[name="capacity"]')?.closest('.field');
+                if (data.capacities.length) {
+                    if (!field) {
+                        field = document.createElement('div'); field.className = 'field';
+                        const label = document.createElement('label'); label.htmlFor = 'capacity'; label.textContent = 'Capacidad';
+                        const select = document.createElement('select'); select.id = 'capacity'; select.name = 'capacity';
+                        field.append(label, select); form.querySelector('button').before(field);
+                    }
+                    const select = field.querySelector('select'), selected = new URL(base).searchParams.get('capacity') || '';
+                    select.replaceChildren(new Option('Todas las capacidades', ''), ...data.capacities.filter(n => Number.isInteger(n) && n > 0).map(n => new Option(`${n} GB`, String(n))));
+                    select.value = selected;
+                } else field?.remove();
+            }
             revision = data.revision;
             next = data.next;
             if (next && !replace && !added) {
@@ -151,19 +165,20 @@ if (root && window.fetch && window.AbortController) {
     });
     form.addEventListener('change', event => { if (event.target.name !== 'q') filters(); });
     root.addEventListener('click', event => {
-        if (event.target.closest('[data-catalog-clear]')) { event.preventDefault(); form.reset(); form.querySelectorAll('input:not([type=checkbox]),select').forEach(el => el.value = ''); form.querySelector('[name=available]').checked = false; filters(); }
+        // A fresh navigation also resets category context and capacity options.
+        if (event.target.closest('[data-catalog-clear]')) return;
     });
     more.addEventListener('click', event => { event.preventDefault(); autoBudget = 3; load(restart, true); });
     window.addEventListener('popstate', () => {
         const params = new URL(location.href).searchParams;
-        for (const name of ['q', 'category', 'capacity']) form.elements[name].value = params.get(name) || '';
-        form.elements.available.checked = params.get('available') === '1';
+        for (const name of ['q', 'category', 'capacity']) if (form.elements[name]) form.elements[name].value = params.get(name) || '';
         filters(false);
     });
     for (const name of ['wheel', 'touchmove']) window.addEventListener(name, () => { autoBudget = 3; observe(); }, {passive: true});
     const save = () => {
         try {
-            if (loading || restart || ids().size > 240 || grid.innerHTML.length > 600000) return;
+            // An append in flight does not invalidate the rendered block; its cursor can resume.
+            if (restart || ids().size > 240 || grid.innerHTML.length > 600000) return;
             sessionStorage.setItem('usbstock.catalog.return', JSON.stringify({url: location.href, base, html: grid.innerHTML, next, revision, y: scrollY, at: Date.now(), focus: document.activeElement?.closest('[data-product-id]')?.dataset.productId}));
         } catch { /* Browsers may deny storage; normal links still work. */ }
     };

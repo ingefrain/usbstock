@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'corporate_contacts' => [
+        'enabled' => (bool) env('CORPORATE_CONTACTS_ENABLED', false),
+        'key' => env('CORPORATE_CONTACTS_KEY'),
+        'record_clicks' => (bool) env('CORPORATE_CONTACTS_RECORD_CLICKS', false),
+    ],
     'seller_cookie_days' => (int) env('COMMERCE_SELLER_COOKIE_DAYS', 90),
     'catalog_block_size' => 24,
     'notify_email' => env('COMMERCE_NOTIFY_EMAIL'),

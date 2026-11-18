@@ -98,7 +98,13 @@ if (shop && window.fetch) {
                 channel?.postMessage({ revision });
             } else {
                 if (response.status === 409 && data?.success === false) apply(data, true);
-                message(errors[response.status] || uncertain, true);
+                const availability = data?.availability;
+                const quantity = availability?.maximum_quantity;
+                const stockMessage = response.status === 409 && Number.isInteger(quantity) && quantity >= 0
+                    ? availability.code === 'minimum_stock' ? 'Este producto no cuenta actualmente con las 50 piezas mínimas disponibles para cotizar.'
+                        : availability.code === 'stock_exceeded' ? `La cantidad supera las existencias. El máximo disponible es de ${quantity.toLocaleString('es-MX')} piezas.` : null
+                    : null;
+                message(stockMessage || errors[response.status] || uncertain, true);
             }
         } catch {
             message(uncertain, true);

@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\QuoteDesignController;
 use App\Http\Controllers\Admin\QuotePhotoController;
 use App\Http\Controllers\Admin\QuoteRequestController;
 use App\Http\Controllers\Admin\SupplierSyncController;
+use App\Http\Controllers\CorporateContactsController;
 use App\Http\Controllers\PublicQuoteRequestController;
 use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::get('producto/{slug}', [StorefrontController::class, 'product'])->name('s
 Route::get('producto/{slug}/imagen', [StorefrontController::class, 'image'])->name('shop.image');
 Route::get('producto/{slug}/miniatura', [StorefrontController::class, 'thumbnail'])->middleware('throttle:240,1,catalog-image')->name('shop.thumbnail');
 Route::get('contacto', [StorefrontController::class, 'info'])->name('shop.info');
+Route::get('contactos-corporativos', [CorporateContactsController::class, 'index'])->middleware('throttle:30,1,corporate-directory')->name('shop.contacts');
+Route::post('contactos-corporativos/clic', [CorporateContactsController::class, 'click'])->middleware('throttle:15,1,corporate-click')->name('shop.contacts.click');
 Route::get('sitemap.xml', [StorefrontController::class, 'sitemap'])->name('shop.sitemap');
 Route::get('solicitar-cotizacion', [PublicQuoteRequestController::class, 'index'])->name('shop.request');
 Route::get('solicitud-recibida', [PublicQuoteRequestController::class, 'received'])->name('shop.request.received');

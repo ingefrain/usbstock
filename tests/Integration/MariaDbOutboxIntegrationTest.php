@@ -3,8 +3,10 @@
 namespace Tests\Integration;
 
 use App\Commerce\PublicCatalog;
+use App\Commerce\PublicQuoteRequests;
 use App\Commerce\QuoteService;
 use App\Commerce\SupplierSync;
+use App\Models\CommercialSeller;
 use App\Models\CommercialSetting;
 use App\Models\OutboxMessage;
 use App\Models\Product;
@@ -67,7 +69,9 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } while ($url);
             $this->assertCount($size, $seen);
             $this->assertCount($size, array_unique($seen));
-            $this->assertLessThanOrEqual(4, max($sqlCounts));
+            // First block includes useful capacity choices; continuation blocks do not repeat that query.
+            $this->assertLessThanOrEqual(5, max($sqlCounts));
+            $this->assertLessThanOrEqual(4, max(array_slice($sqlCounts, 1)));
             $this->assertLessThan(65000, max($sizes));
             $filterStart = hrtime(true);
             $filtered = $this->getJson('/catalogo/bloques?capacity=16&available=1&q=TEST')->assertOk();
@@ -196,10 +200,10 @@ class MariaDbOutboxIntegrationTest extends TestCase
         Storage::fake('local');
         $this->actingAsAdmin();
         CatalogDataset::create(1, 2);
-        $service = app(\App\Commerce\PublicQuoteRequests::class);
+        $service = app(PublicQuoteRequests::class);
         $variant = ProductVariant::firstOrFail();
         $request = $service->submit(['name' => 'Cliente QA', 'email' => 'qa@example.test', 'phone' => '5555555555', 'country' => 'México'], [$variant->id => 50], 'Observación QA', hash('sha256', 'isolated-seller'), ['has_seller' => true, 'seller_name' => ' Josè Luis ']);
-        $seller = \App\Models\CommercialSeller::create(['name' => 'José Luis · QA', 'is_active' => true]);
+        $seller = CommercialSeller::create(['name' => 'José Luis · QA', 'is_active' => true]);
         $service->assignSeller($request, $seller->id, 1, auth()->id());
         $quote = $service->convert($request, auth()->id());
         $this->assertSame($quote->id, $service->convert($request, auth()->id())->id);
@@ -272,7 +276,7 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-            $this->assertSame(26, DB::table('migrations')->count());
+            $this->assertSame(27, DB::table('migrations')->count());
         }
     }
 

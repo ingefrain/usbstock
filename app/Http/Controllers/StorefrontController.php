@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Services\Documents\ManagedDocumentPath;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -17,9 +18,9 @@ final class StorefrontController
     public function home()
     {
         $products = app(PublicCatalog::class)->query([])->orderByRaw('CASE WHEN capacity_gb IS NULL THEN 1 ELSE 0 END')->orderByDesc('products.id')->limit(4)->get();
-        $categories = ProductCategory::where('is_published', true)->orderBy('name')->limit(4)->get();
+        $categories = ProductCategory::publiclyVisible()->whereNull('parent_id')->orderBy('sort_order')->orderBy('id')->get();
         foreach ($categories as $category) {
-            $category->setRelation('previewProduct', app(PublicCatalog::class)->query([])->where('product_category_id', $category->id)->whereHas('image')->orderBy('products.id')->first());
+            $category->setRelation('previewProduct', app(PublicCatalog::class)->query(['category' => $category->slug])->whereHas('image')->orderBy('products.id')->first());
         }
 
         return view('shop.home', compact('products', 'categories'));
@@ -29,7 +30,7 @@ final class StorefrontController
     {
         $input = $this->catalogInput($request);
         if ($category !== null) {
-            ProductCategory::where('slug', $category)->where('is_published', true)->firstOrFail();
+            ProductCategory::publiclyVisible()->where('slug', $category)->firstOrFail();
             $input['category'] = $category;
         }
         $filters = $catalog->filters($input);
@@ -43,8 +44,8 @@ final class StorefrontController
         }
 
         return response()->view('shop.catalog', $block + ['filters' => $filters,
-            'categories' => ProductCategory::where('is_published', true)->orderBy('name')->get(),
-            'capacities' => Product::catalogVisible()->whereNotNull('capacity_gb')->distinct()->orderBy('capacity_gb')->pluck('capacity_gb')])->header('Cache-Control', 'no-store, private');
+            'activeCategory' => isset($filters['category']) ? ProductCategory::publiclyVisible()->with('parent')->where('slug', $filters['category'])->first() : null,
+            'capacities' => $catalog->query(Arr::except($filters, ['capacity']))->reorder()->select('capacity_gb')->where('capacity_gb', '>', 0)->distinct()->orderBy('capacity_gb')->pluck('capacity_gb')])->header('Cache-Control', 'no-store, private');
     }
 
     public function catalogBlock(Request $request, PublicCatalog $catalog)
@@ -53,7 +54,8 @@ final class StorefrontController
         $block = $catalog->block($filters, $request->input('cursor'));
 
         return response()->json(['html' => view('shop.cards', $block + ['filters' => $filters])->render(),
-            'next' => $block['nextUrl'], 'count' => $block['products']->count(), 'revision' => $block['revision']])
+            'next' => $block['nextUrl'], 'count' => $block['products']->count(), 'revision' => $block['revision'],
+            'capacities' => $request->filled('cursor') ? null : $catalog->query(Arr::except($filters, ['capacity']))->reorder()->select('capacity_gb')->where('capacity_gb', '>', 0)->distinct()->orderBy('capacity_gb')->pluck('capacity_gb')])
             ->header('Cache-Control', 'no-store, private')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
@@ -73,8 +75,9 @@ final class StorefrontController
 
     public function product(string $slug)
     {
-        $product = Product::catalogVisible()->with(['image', 'category', 'variants' => fn ($q) => $q->where('provider_active', true)->where('is_enabled', true)->orderBy('sku')])->where('slug', $slug)->firstOrFail();
-        $related = app(PublicCatalog::class)->query([])->where('products.id', '!=', $product->id)->where('product_category_id', $product->product_category_id)->orderByDesc('products.id')->limit(3)->get();
+        $product = Product::catalogVisible()->with(['image', 'category', 'categories', 'variants' => fn ($q) => $q->commerciallyAvailable()->orderBy('sku')])->where('slug', $slug)->firstOrFail();
+        $categoryIds = array_filter([$product->product_category_id, ...$product->categories->pluck('id')->all()]);
+        $related = app(PublicCatalog::class)->query([])->where('products.id', '!=', $product->id)->when($categoryIds, fn ($q) => $q->inCategories($categoryIds))->orderByDesc('products.id')->limit(3)->get();
 
         return view('shop.product', compact('product', 'related'));
     }
@@ -98,7 +101,7 @@ final class StorefrontController
     public function sitemap()
     {
         $products = Product::catalogVisible()->orderBy('id')->get(['slug', 'updated_at']);
-        $categories = ProductCategory::where('is_published', true)->orderBy('id')->get(['slug', 'updated_at']);
+        $categories = ProductCategory::publiclyVisible()->orderBy('id')->get(['slug', 'updated_at']);
 
         return response()->view('shop.sitemap', compact('products', 'categories'))->header('Content-Type', 'application/xml');
     }
