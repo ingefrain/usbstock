@@ -5,7 +5,7 @@
     @php($active = $rootCategory->slug === $currentSlug || $rootCategory->children->contains('slug', $currentSlug))
     @if($rootCategory->children->isNotEmpty())
     <details class="category-group" @if($active) data-current @endif>
-        <summary aria-expanded="false">{{ $rootCategory->name }}@if($mobile)<span class="category-action" aria-hidden="true"><span class="category-action-open">Ver opciones</span><span class="category-action-close">Cerrar</span></span>@endif</summary>
+        <summary>{{ $rootCategory->name }}@if($mobile)<span class="category-action" aria-hidden="true"><span class="category-action-open">Ver opciones</span><span class="category-action-close">Cerrar</span></span>@endif</summary>
         <div class="category-dropdown">
             <div class="category-intro"><span class="eyebrow">Explora posibilidades</span><strong>{{ $rootCategory->name }}</strong><a href="{{ route('shop.category', $rootCategory->slug) }}" @if($rootCategory->slug === $currentSlug) aria-current="page" @endif>Ver todo <span aria-hidden="true">↗</span></a></div>
             <div class="category-links">@foreach($rootCategory->children as $child)<a href="{{ route('shop.category', $child->slug) }}" @if($child->slug === $currentSlug) aria-current="page" @endif>{{ $child->name }} <span aria-hidden="true">↗</span></a>@endforeach</div>

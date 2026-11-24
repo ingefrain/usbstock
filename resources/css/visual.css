@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import './shop.css';
+@import './commercial-navigation.css';
+@import './visual-public.css';
+@import './visual-home.css';
+
+@source '../views/**/*.blade.php';
+@source '../js/**/*.js';
+
+@theme { --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif; }

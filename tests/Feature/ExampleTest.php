@@ -16,6 +16,6 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertOk()->assertSee('Encuentra tu USB');
+        $response->assertOk()->assertSee('Tu marca, siempre presente')->assertSee('Explorar productos');
     }
 }

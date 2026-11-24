@@ -41,10 +41,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        View::composer('components.shop.category-nav', function ($view): void {
-            $view->with('navigationCategories', ProductCategory::publiclyVisible()->whereNull('parent_id')
-                ->with(['children' => fn ($q) => $q->where('is_published', true)])
-                ->orderBy('sort_order')->orderBy('id')->get());
+        View::composer(['components.shop.category-nav', 'layouts.shop', 'shop.catalog'], function ($view): void {
+            // One public navigation tree per request, shared by header, filters and footer.
+            $request = request();
+            if (! $request->attributes->has('storefront.navigation')) {
+                $request->attributes->set('storefront.navigation', ProductCategory::publiclyVisible()->whereNull('parent_id')
+                    ->with(['children' => fn ($q) => $q->where('is_published', true)])
+                    ->orderBy('sort_order')->orderBy('id')->get());
+            }
+            $view->with('navigationCategories', $request->attributes->get('storefront.navigation'));
         });
         Paginator::defaultView('pagination.admin');
         Paginator::defaultSimpleView('pagination.admin-simple');
