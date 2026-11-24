@@ -1,6 +1,9 @@
 <?php
 
-if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
 require __DIR__.'/bootstrap.php';
 
 use App\Models\QuoteRequest;
@@ -11,7 +14,9 @@ use Illuminate\Support\Facades\Storage;
 DB::statement('PRAGMA query_only = ON');
 $checks = 0;
 $verify = function (bool $ok, string $label) use (&$checks) {
-    if (! $ok) throw new RuntimeException('Persistence verification failed: '.$label);
+    if (! $ok) {
+        throw new RuntimeException('Persistence verification failed: '.$label);
+    }
     $checks++;
 };
 $requests = QuoteRequest::with(['quote.items', 'quote.versions', 'seller'])->get()
@@ -50,7 +55,9 @@ foreach ($requests as $request) {
 $verify(DB::table('products')->count() === 362 && DB::table('product_variants')->count() === 818, 'reference catalog');
 $verify(! DB::table('product_variants')->where('stock', '!=', 250)->exists(), 'synthetic stock unchanged');
 $verify(DB::table('outbox_messages')->count() === 0, 'no commercial outbox');
-foreach (['commerce.sync.ftp_enabled', 'commerce.sync.enabled', 'commerce.sync.auto_apply', 'commerce.telegram_enabled', 'services.telegram.enabled', 'notifications.telegram.enabled'] as $key) $verify(! config($key), 'disabled automation');
+foreach (['commerce.sync.ftp_enabled', 'commerce.sync.enabled', 'commerce.sync.auto_apply', 'commerce.telegram_enabled', 'services.telegram.enabled', 'notifications.telegram.enabled'] as $key) {
+    $verify(! config($key), 'disabled automation');
+}
 $verify(blank(config('commerce.notify_email')) && config('mail.default') === 'array', 'no external email');
 $report['checks'] = $checks;
 $report['passed'] = true;

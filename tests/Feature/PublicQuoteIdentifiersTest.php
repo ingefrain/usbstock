@@ -139,6 +139,7 @@ class PublicQuoteIdentifiersTest extends TestCase
 
     public function test_issuance_and_later_revision_keep_the_same_public_identifier(): void
     {
+        config(['quote_api.enabled' => true]);
         Storage::fake('local');
         $actor = User::factory()->create();
         CommercialSetting::query()->create(['id' => 1, 'data' => ['issuer_name' => 'Emisor ficticio', 'issuer_contact' => 'emisor@example.invalid']]);

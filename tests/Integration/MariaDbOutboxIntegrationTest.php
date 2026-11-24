@@ -328,7 +328,10 @@ class MariaDbOutboxIntegrationTest extends TestCase
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-            $this->assertSame(28, DB::table('migrations')->count());
+            $expectedMigrations = collect(glob(database_path('migrations/*.php')) ?: [])
+                ->map(fn (string $path): string => basename($path, '.php'))
+                ->sort()->values()->all();
+            $this->assertSame($expectedMigrations, DB::table('migrations')->orderBy('migration')->pluck('migration')->all());
         }
     }
 

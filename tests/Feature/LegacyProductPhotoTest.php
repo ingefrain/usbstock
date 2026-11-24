@@ -33,7 +33,7 @@ class LegacyProductPhotoTest extends TestCase
         app(ProductThumbnail::class)->response($document);
         $info = getimagesizefromstring($disk->get('product-thumbnails/v1/'.$document->checksum.'.webp'));
         $this->assertLessThanOrEqual(480, max($info[0], $info[1]));
-        foreach ([['sku' => 'USB2-AZ'], ['model' => 'USB2'], ['legacy_variant_id' => '../123'], ['sha256' => str_repeat('0',64)], ['legacy_variant_id' => 124]] as $invalid) {
+        foreach ([['sku' => 'USB2-AZ'], ['model' => 'USB2'], ['legacy_variant_id' => '../123'], ['sha256' => str_repeat('0', 64)], ['legacy_variant_id' => 124]] as $invalid) {
             try {
                 $service->attach($product, array_replace($mapping, $invalid), $disk->path('source'), $actor);
                 $this->fail('Unverified mapping accepted');
