@@ -1,0 +1,35 @@
+/* Layout only: controls and typography inherit the actual USB Stock workspace. */
+.guest-body {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: var(--usb-space-6);
+    background: var(--usb-canvas);
+}
+.guest-body .guest-card {
+    width: min(100%, 450px);
+    max-width: 450px;
+    padding: clamp(24px, 5vw, 42px);
+    border: 1px solid var(--usb-line);
+    border-radius: var(--usb-radius);
+    background: var(--usb-surface);
+    box-shadow: var(--usb-shadow);
+}
+.guest-body .guest-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--usb-space-8);
+}
+.guest-body .guest-brand img {
+    width: 240px;
+    max-width: 100%;
+    height: auto;
+    max-height: 96px;
+    object-fit: contain;
+}
+.guest-card > :is(.eyebrow, h1, .muted) { text-align: center; }
+.guest-body .eyebrow { color: var(--usb-action); }
+@media (max-width: 600px) {
+    .guest-body { padding: var(--usb-space-4); }
+    .guest-body .guest-card { padding: var(--usb-space-6); }
+}
