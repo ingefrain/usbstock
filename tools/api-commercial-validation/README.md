@@ -32,7 +32,7 @@ heredado, migrar desarrollo ni copiar credenciales para repetir el ensayo.
   `postmerge-browser.cjs`: validación de main después de integrar.
   Preparan una copia SQLite privada, almacenamiento independiente y clave QA
   nueva en `storage/app/private/qa/api-postmerge`; no leen el .env estable,
-  no conectan a MariaDB y no migran. El frontend se limita a loopback 4398 y el proceso PHP interno a 4399.
+  no conectan a MariaDB y no migran. El servidor PHP se limita a loopback 4398.
 
 Los helpers conservan los artefactos privados bajo storage. No incorporar a Git
 SQLite, logs, capturas, PDF, estados, cookies ni claves. Los respaldos de xtras
@@ -81,11 +81,13 @@ pertenecen a esta instancia; API, directorio corporativo y salidas comerciales
 permanecen desactivados.
 
 `postmerge-browser.cjs` inicia y detiene su servidor mediante
-`postmerge-server.cjs`: exige libres los puertos 4398/4399, sirve únicamente
-assets públicos permitidos y transmite las rutas de aplicación a PHP real.
+`postmerge-server.cjs`: exige libre el puerto 4398 y usa PHP directamente con el router QA. El router
+permite sólo assets públicos y resuelve las rutas de aplicación mediante el
+bootstrap aislado. Es el mismo modelo de servidor probado en el experimento;
+no mantiene un proxy Node ni una cola de conexiones intermedia.
 El proceso PHP se abre oculto y se detiene al finalizar, incluso si falla una
 comprobación. No iniciar otro servidor para este recorrido. Ante una terminación
-forzada, identificar el proceso de este router y sus puertos antes de cerrarlo;
+forzada, identificar el proceso de este router y su puerto antes de cerrarlo;
 no detener otros procesos PHP o Node. La sesión ficticia se cierra mediante la
 interfaz al completar el recorrido.
 
