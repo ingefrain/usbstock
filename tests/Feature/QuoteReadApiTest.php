@@ -47,6 +47,7 @@ class QuoteReadApiTest extends TestCase
     public function test_success_matches_the_anonymized_contract_with_native_nullable_fields(): void
     {
         [, , $id] = $this->fixture();
+        $this->assertSame(3000, $id);
         $response = $this->read($id)->assertOk()->assertHeader('Content-Type', 'application/json; charset=utf-8');
         $data = $response->json('data');
         $reference = json_decode(file_get_contents(base_path('tests/Fixtures/Api/quote-v1-anonymized.json')), true, 512, JSON_THROW_ON_ERROR);
@@ -394,13 +395,19 @@ class QuoteReadApiTest extends TestCase
     {
         $quote = Quote::create(['status' => $status, 'customer' => ['name' => 'Datos actuales distintos', 'email' => 'current@example.invalid'],
             'seller' => 'Asesor ficticio', 'totals' => ['total' => 1], 'created_at' => '2026-11-20 18:00:00']);
-        $id = PublicQuoteIdentifiers::NATIVE_MIN + $quote->id - 1;
-        QuotePublicIdentifier::create(['public_id' => $id, 'quote_id' => $quote->id, 'origin' => 'laravel', 'source_id' => $quote->uuid, 'created_at' => now()]);
+        $version = $withVersion ? $this->version($quote, 1, $snapshot ?? $this->snapshot()) : null;
+        if ($version) {
+            $id = app(PublicQuoteIdentifiers::class)->assign($quote)->public_id;
+        } else {
+            // Deliberately inconsistent fixture verifies that lookup never invents an emission.
+            $id = max(PublicQuoteIdentifiers::NATIVE_MIN, (int) QuotePublicIdentifier::max('public_id') + 1);
+            QuotePublicIdentifier::create(['public_id' => $id, 'quote_id' => $quote->id, 'origin' => 'laravel', 'source_id' => $quote->uuid, 'created_at' => now()]);
+        }
         if ($grant) {
             config(['quote_api.allowed_quote_uuids' => [...config('quote_api.allowed_quote_uuids'), $quote->uuid]]);
         }
 
-        return [$quote, $withVersion ? $this->version($quote, 1, $snapshot ?? $this->snapshot()) : null, $id];
+        return [$quote, $version, $id];
     }
 
     private function version(Quote $quote, int $number, array $snapshot, string $createdAt = '2026-11-23 18:00:00'): QuoteVersion

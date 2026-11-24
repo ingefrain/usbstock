@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Commerce\Api\PublicQuoteIdentifiers;
 use App\Commerce\Api\QuoteDocument;
 use App\Commerce\Api\QuoteUnavailable;
 use App\Models\Quote;
-use App\Models\QuotePublicIdentifier;
 use App\Models\QuoteVersion;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,14 +43,11 @@ class QuoteApiDocumentTest extends TestCase
             'status' => 'issued', 'customer' => ['name' => 'Cliente ficticio', 'email' => 'ficticio@example.invalid'],
             'seller' => 'Asesor ficticio', 'totals' => [],
         ]);
-        $publicId = 2147483647 + $quote->id;
-        QuotePublicIdentifier::create([
-            'public_id' => $publicId, 'quote_id' => $quote->id,
-            'origin' => 'laravel', 'source_id' => $quote->uuid, 'created_at' => now(),
-        ]);
+        $version = $this->version($quote);
+        $publicId = app(PublicQuoteIdentifiers::class)->assign($quote)->public_id;
         config(['quote_api.allowed_quote_uuids' => [...config('quote_api.allowed_quote_uuids'), $quote->uuid]]);
 
-        return [$quote, $this->version($quote), $publicId];
+        return [$quote, $version, $publicId];
     }
 
     private function version(Quote $quote, int $number = 1): QuoteVersion
@@ -88,6 +85,7 @@ class QuoteApiDocumentTest extends TestCase
     public function test_capability_is_opaque_uses_configured_origin_and_remains_bound_to_its_version(): void
     {
         [$quote, $version, $id] = $this->quote();
+        $this->assertSame(3000, $id);
         $service = app(QuoteDocument::class);
         $pdf = $service->describe($quote, $version, $id);
         $ticket = $this->ticket($pdf);
