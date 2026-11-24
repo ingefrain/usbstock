@@ -7,7 +7,8 @@ use Illuminate\Foundation\Bootstrap\RegisterProviders;
 use Illuminate\Support\Facades\Http;
 
 $project = str_replace('\\', '/', dirname(__DIR__, 2));
-$reviewRoot = $project.'/storage/app/private/qa/api-postmerge';
+$reviewCachePath = 'storage/app/private/qa/api-postmerge';
+$reviewRoot = $project.'/'.$reviewCachePath;
 if (! in_array(PHP_SAPI, ['cli', 'cli-server'], true) || $project !== 'E:/proyectos/usbstock/site' || is_file($project.'/bootstrap/cache/config.php')
     || ! is_file($reviewRoot.'/manifest.json') || ! is_file($reviewRoot.'/instance.json')) {
     throw new RuntimeException('Prepared isolated main instance required.');
@@ -22,7 +23,8 @@ if (($instance['purpose'] ?? '') !== 'api-postmerge-isolated-v1' || ($instance['
 }
 $environment = [
     'APP_ENV' => 'local', 'APP_DEBUG' => 'false', 'APP_NAME' => 'USB Stock QA postmerge', 'APP_KEY' => $instance['key'], 'APP_PREVIOUS_KEYS' => '', 'APP_URL' => 'http://127.0.0.1:4398',
-    'APP_CONFIG_CACHE' => $reviewRoot.'/unused-config.php', 'APP_ROUTES_CACHE' => $reviewRoot.'/unused-routes.php', 'APP_SERVICES_CACHE' => $reviewRoot.'/services.php', 'APP_PACKAGES_CACHE' => $reviewRoot.'/packages.php',
+    // Laravel resolves these relative to basePath; Windows drive letters are not absolute cache prefixes.
+    'APP_CONFIG_CACHE' => $reviewCachePath.'/unused-config.php', 'APP_ROUTES_CACHE' => $reviewCachePath.'/unused-routes.php', 'APP_SERVICES_CACHE' => $reviewCachePath.'/services.php', 'APP_PACKAGES_CACHE' => $reviewCachePath.'/packages.php', 'APP_EVENTS_CACHE' => $reviewCachePath.'/unused-events.php',
     'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database, 'DB_URL' => '', 'DB_HOST' => '', 'DB_PORT' => '', 'DB_USERNAME' => '', 'DB_PASSWORD' => '', 'DB_SOCKET' => '',
     'CACHE_STORE' => 'file', 'CACHE_PREFIX' => 'usbstock_api_postmerge', 'SESSION_DRIVER' => 'file', 'SESSION_COOKIE' => 'usbstock_api_postmerge', 'SESSION_DOMAIN' => '', 'SESSION_SECURE_COOKIE' => 'false',
     'SESSION_CONNECTION' => '', 'SESSION_STORE' => '', 'QUEUE_CONNECTION' => 'sync', 'MAIL_MAILER' => 'array', 'BROADCAST_CONNECTION' => 'null', 'FILESYSTEM_DISK' => 'local', 'DOCUMENTS_DISK' => 'local',
@@ -34,7 +36,7 @@ foreach ($environment as $name => $value) {
     putenv($name.'='.$value);
     $_ENV[$name] = $_SERVER[$name] = $value;
 }
-foreach (['unused-config.php', 'unused-routes.php', 'never-load-main.env'] as $name) {
+foreach (['unused-config.php', 'unused-routes.php', 'unused-events.php', 'never-load-main.env'] as $name) {
     if (file_exists($reviewRoot.'/'.$name)) {
         throw new RuntimeException('Unexpected runtime override file.');
     }
