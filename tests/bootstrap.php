@@ -5,6 +5,8 @@ require dirname(__DIR__).'/vendor/autoload.php';
 // Laravel reads $_SERVER before getenv(); PHPUnit's force flag only updates
 // getenv()/$_ENV. Mirror the forced values so inherited shell variables cannot win.
 foreach (['APP_ENV', 'DB_CONNECTION', 'DB_DATABASE', 'DB_URL', 'CACHE_STORE',
+    'USBSTOCK_API_ENABLED', 'USBSTOCK_API_BEARER_TOKEN', 'USBSTOCK_API_ALLOWED_QUOTE_UUIDS',
+    'USBSTOCK_API_PDF_ENABLED', 'USBSTOCK_API_ENVIRONMENT', 'USBSTOCK_API_BASE_URL',
     'MAIL_MAILER', 'QUEUE_CONNECTION', 'SESSION_DRIVER', 'APP_URL',
     'SUPPLIER_FTP_ENABLED', 'SUPPLIER_SYNC_ENABLED', 'SUPPLIER_SYNC_AUTO_APPLY',
     'SUPPLIER_FTP_HOST', 'SUPPLIER_FTP_USER', 'SUPPLIER_FTP_PASSWORD', 'SUPPLIER_FTP_PROTOCOL',

@@ -23,6 +23,12 @@
     <php>
         <env name="APP_URL" value="http://localhost" force="true"/>
         <env name="APP_ENV" value="testing" force="true"/>
+        <env name="USBSTOCK_API_ENABLED" value="false" force="true"/>
+        <env name="USBSTOCK_API_BEARER_TOKEN" value="" force="true"/>
+        <env name="USBSTOCK_API_ALLOWED_QUOTE_UUIDS" value="" force="true"/>
+        <env name="USBSTOCK_API_PDF_ENABLED" value="false" force="true"/>
+        <env name="USBSTOCK_API_ENVIRONMENT" value="local" force="true"/>
+        <env name="USBSTOCK_API_BASE_URL" value="http://127.0.0.1:8001" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

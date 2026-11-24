@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "data": {
+    "id": 910001,
+    "folio": "910001/2020",
+    "source": {
+      "system": "USB Stock",
+      "environment": "production"
+    },
+    "dates": {
+      "created_at": "2020-01-15T09:20:00-06:00",
+      "elaborated_at": "2020-01-15T10:35:00-06:00"
+    },
+    "customer": {
+      "id": 910002,
+      "name": "Contacto ficticio para contrato",
+      "company": null,
+      "email": "contrato@example.invalid",
+      "phone": null,
+      "secondary_phone": null
+    },
+    "items": [
+      {
+        "id": 910003,
+        "sku": "USB-EJEMPLO-CONTRATO",
+        "variant_sku": null,
+        "name": "PRODUCTO FICTICIO DE CONTRATO",
+        "description": null,
+        "color": "AZ",
+        "quantity": 50,
+        "printing": "Grabado de ejemplo"
+      }
+    ],
+    "unlisted_items": [],
+    "items_html": null,
+    "sale_amount_available": true,
+    "sale_amount_unavailable_reason": null,
+    "amounts_basis": "last_confirmed_quote_send",
+    "amounts_recorded_at": "2020-01-15T10:35:00-06:00",
+    "amounts": {
+      "currency": "MXN",
+      "sale_amount": 1234.56,
+      "shipping": 78.9,
+      "tax": 210.15,
+      "total": 1523.61
+    },
+    "archived": true,
+    "comments": "Observación ficticia para validar la estructura.",
+    "pdf": {
+      "available": true,
+      "url": "https://documentos.example.invalid/cotizacion-ficticia.pdf",
+      "basis": "latest_generated_quote_pdf"
+    }
+  }
+}

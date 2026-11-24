@@ -52,6 +52,7 @@ final class LegacyProductPhoto
             } elseif (! $disk->put($path, $bytes)) {
                 $fail();
             }
+
             // Process the preserved copy, not a legacy path that could change between checks.
             return app(DocumentService::class)->upload(new UploadedFile($disk->path($path), basename($file), 'image/jpeg', null, true), $product, $actor, Product::IMAGE_CATEGORY,
                 ['title' => $product->external_key.' · fotografía de referencia'],
