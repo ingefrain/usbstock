@@ -133,6 +133,7 @@ final class QuoteService
                     throw new \RuntimeException('No se pudo guardar el PDF privado.');
                 }
                 $record = $quote->versions()->create(['uuid' => $uuid, 'version' => $version, 'request_key' => $requestKey, 'snapshot' => $snapshot, 'path' => $path, 'sha256' => hash('sha256', $bytes), 'size' => strlen($bytes), 'renderer_version' => QuotePdf::VERSION, 'created_by' => $actorId, 'created_at' => now()]);
+                app(\App\Commerce\Api\PublicQuoteIdentifiers::class)->assign($quote);
                 $quote->status = 'issued';
                 $quote->revision++;
                 $quote->save();
