@@ -115,7 +115,7 @@ El checkout se clonó desde GitHub. La instalación usa `bun install --frozen-lo
 
 Se ejecutó el navegador real Edge 158.0.4370.33 mediante Playwright instalado en el entorno portable. El primer arranque dentro del sandbox agotó su espera; el mismo runner funcionó con el permiso de proceso correspondiente. No fue necesario instalar un navegador. El runner de QA espera la hidratación React antes de interactuar o preparar imágenes; las capturas iniciales realizadas antes de esa espera no deben usarse para atribuir defectos de navegación a la referencia.
 
-Evidencia privada del experimento: `storage/app/private/qa/visual-gsap/reference/`. Runner: `storage/app/private/qa/visual-gsap/reference-runner.cjs`. El informe final es `reference-report.json`; un informe de la iteración anterior se conserva identificado como `reference-report-before-hydration-fix.json`.
+Evidencia privada del experimento: `storage/app/private/qa/visual-gsap/reference/`. Runner reproducible versionado: `tools/visual-gsap/reference.cjs`; el original de la ejecución permanece en `storage/app/private/qa/visual-gsap/reference-runner.cjs`. El informe final es `reference-report.json`; un informe de la iteración anterior se conserva identificado como `reference-report-before-hydration-fix.json`.
 
 | Verificación real de referencia | Resultado |
 | --- | --- |
